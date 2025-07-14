@@ -1,0 +1,49 @@
+enum LOANSTATUS {
+    ACTIVE
+    PAID
+    DEFAULTED
+}
+
+input LoanInput {
+    accountId: String!
+    amount: Int!
+    interestRate: Float!
+    status: LOANSTATUS!
+    endDate: String!
+    startDate: String!
+    term: Int!
+}
+
+type Loan {
+    id: String!
+    accountId: String!
+    amount: Int!
+    interestRate: Float!
+    status: LOANSTATUS!
+    endDate: String!
+    startDate: String!
+    term: Int!
+    summary:LoanSummary
+    createAt: String
+    updateAt: String
+    account: Account
+}
+
+type Query {
+    getLoans(accountId:ID): [Loan]
+}
+
+type Mutation {
+    createLoan(loan: LoanInput): Loan
+    updateLoan(
+        id: String!
+        accountId: String
+        amount: Int
+        interestRate: Float
+        status: LOANSTATUS
+        endDate: String
+        startDate: String
+        term: Int
+    ): Loan
+    deleteLoan(id: String!): Loan
+}

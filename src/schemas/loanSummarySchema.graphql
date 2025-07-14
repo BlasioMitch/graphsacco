@@ -1,0 +1,7 @@
+type LoanSummary{
+    id:String!
+    loanId:String
+    monthlyPayment: Float
+    totalInterest: Float
+    remainingBalance: Float
+}

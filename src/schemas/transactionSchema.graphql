@@ -1,0 +1,53 @@
+enum TRANSACTIONTYPE{
+    LOAN_PAYMENT
+    MEMBERSHIP_FEE
+    SAVINGS_DEPOSIT
+    ACCOUNT_WITHDRAW
+    CLOSURE_WITHDRAW
+}
+
+enum TRANSACTIONSTATUS{
+    PENDING
+    COMPLETED
+    FAILED
+}
+
+input TransactionInput {
+    type: TRANSACTIONTYPE!
+    amount: Float!
+    accountId: String!
+    status: TRANSACTIONSTATUS!
+    description: String
+    loanId: String
+}
+
+type Transaction {
+    id: String!
+    type: TRANSACTIONTYPE!
+    amount: Float!
+    accountId: String!
+    acountName: String
+    status: TRANSACTIONSTATUS!
+    description: String
+    loanId: String
+    createdAt: String
+    updateAt: String
+}
+
+type Query {
+    getTransactions(accountId: ID): [Transaction]
+}
+
+type Mutation {
+    createTransaction(transaction: TransactionInput): Transaction
+    updateTransaction(
+        id: String!
+        type: TRANSACTIONTYPE
+        amount: Float
+        accountId: String
+        status: TRANSACTIONSTATUS
+        description: String
+        loanId: String
+    ): Transaction
+    deleteTransaction(id: String!): Transaction
+}

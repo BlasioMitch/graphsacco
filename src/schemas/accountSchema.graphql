@@ -1,0 +1,44 @@
+enum ACCOUNTSTATUS{
+    ACTIVE
+    INACTIVE
+    CLOSED
+}
+input AccountInput {
+    userId: String!
+    balance: Int
+    status: ACCOUNTSTATUS
+    paidMembership: Boolean
+    }
+
+type Account {
+    id: String!
+    userId: String!
+    accountNumber: String!
+    balance: Int!
+    status: ACCOUNTSTATUS!
+    paidMembership: Boolean!
+    hasLoan: Boolean!
+    is_deleted: Boolean
+    deleted_at: String
+    owner: User
+    loans: [Loan]
+    transactions: [Transaction]
+}
+
+type Query {
+    getAccounts: [Account]
+    getAccountById(id: String!): Account
+}
+
+type Mutation {
+    createAccount(account: AccountInput): Account
+    updateAccount(
+        id: String!
+        balance: Int
+        status: ACCOUNTSTATUS
+        paidMembership: Boolean
+    ): Account
+
+    deleteAccount(id: String!): String
+}
+

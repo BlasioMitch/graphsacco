@@ -1,0 +1,67 @@
+enum USERROLE {
+    ADMIN
+    MANAGER
+    USER
+}
+enum USERSTATUS {
+    ACTIVE
+    INACTIVE
+}
+enum GENDER {
+    MALE
+    FEMALE
+}
+input UserInput {
+    first_name: String!
+    last_name: String!
+    other_name: String
+    email: String!
+    password: String
+    role: USERROLE!
+    status: USERSTATUS!
+    contact: String!
+    dob: String!
+    gender: GENDER
+}
+input UserUpdateInput {
+    first_name: String
+    last_name: String
+    other_name: String
+    email: String
+    role: USERROLE
+    status: USERSTATUS
+    contact: String
+    dob: String
+}
+type User{
+    id: ID
+    first_name: String
+    last_name: String
+    other_name: String
+    email: String
+    role: USERROLE
+    status: USERSTATUS
+    lastLogin: String
+    joinDate: String
+    contact: String
+    gender: GENDER
+    dob: String
+    hasAccount: Boolean
+    fullName: String
+    account: Account
+    }
+type Query{
+        getUsers: [User]
+        getUserById(id: ID!): User
+        getHealthCheck: String
+    }
+
+type Mutation {
+    createUser(user: UserInput): User
+    
+    updateUser(
+        id: ID!
+        updateData: UserUpdateInput
+        )               : User
+    deleteUser(id: ID!): String
+}
