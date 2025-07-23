@@ -58,7 +58,7 @@ app.use(cookieParser())
 app.use(
   '/',
   cors<cors.CorsRequest>({
-    origin: 'http://localhost:5173',
+    origin: process.env.ALLOWED_ORIGINS?.split(','), // Allow multiple origins from .env
     // origin:'*',
     credentials: true,
   }),
