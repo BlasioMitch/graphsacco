@@ -32,7 +32,7 @@ export default {
         getHealthCheck: async (_: any, __: any, context: any) => {
             const response = await context.restAPI.getHealthCheck();
             return response.status;
-        }
+        },
 
     },
     Mutation: {

@@ -51,7 +51,7 @@ type User{
     fullName: String
     account: Account
     }
-type Query{
+extend type Query{
         getUsers: [User]
         getUserById(id: ID!): User
         getHealthCheck: String

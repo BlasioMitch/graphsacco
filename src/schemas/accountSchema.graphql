@@ -25,7 +25,7 @@ type Account {
     transactions: [Transaction]
 }
 
-type Query {
+extend type Query {
     getAccounts: [Account]
     getAccountById(id: String!): Account
 }

@@ -5,6 +5,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
+    "copy-graphql": "cp -r src/schemas/*.graphql dist/schemas/",
     "dev": "nodemon",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
