@@ -1,34 +1,24 @@
 import 'dotenv/config';
+import {ApolloServerPluginDrainHttpServer} from '@apollo/server/plugin/drainHttpServer'
+import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
+import { expressMiddleware } from '@as-integrations/express4'
+import { IncomingMessage, ServerResponse } from 'http';
 import { ApolloServer } from '@apollo/server';
-import { ApolloServerPlugin } from '@apollo/server';
+import express from 'express';
+import http from 'http';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+
+import { loggingPlugin } from './utils/logging.js';
 import DataLoader from 'dataloader';
-import { startStandaloneServer } from '@apollo/server/standalone';
 import { typeDefs } from './schemas/index.js';
 import { getResolvers } from './resolvers/index.js';
 import { RestAPI } from './datasources/RestAPI.js';
-import {  generateApiToken, authenticateRequest } from './utils/auth.js';
+import {  generateApiToken, authenticateRequest, extractTokenFromCookie } from './utils/auth.js';
 import { userAccountLoader,accountOwnerLoader, accountTransactionsLoader, accountLoansLoader, loanSummaryLoader, loanAccountLoader } from './loaders/index.js';
 import { Account, User, Loan, Loansummary, Transaction } from './types/index.js';
 
-
-export const loggingPlugin: ApolloServerPlugin = {
-  async requestDidStart(requestContext) {
-    const { request } = requestContext;
-
-    console.log('📥 New GraphQL Request');
-    console.log('📝 Operation Name:', request.operationName);
-    console.log('⚙️  Operation Type:', request.query?.trim().split(' ')[0]); // usually 'query' or 'mutation'
-    console.log('📄 Query:', request.query?.replace(/\s+/g, ' ').trim());
-    console.log('📦 Variables:', JSON.stringify(request.variables, null, 2));
-
-    return {
-      async willSendResponse(responseContext) {
-        console.log('✅ Response sent with status code:', responseContext.response.http?.status ?? 'N/A');
-        console.log('===========================');
-      },
-    };
-  },
-};
+// const cookieParser  = require('cookie-parser')
 
 interface ContextValue{
     token: string | null;
@@ -41,51 +31,78 @@ interface ContextValue{
       accountTransactionsLoader: DataLoader<string, Transaction[] | null>;
       loanSummaryLoader: DataLoader<string, Loansummary | null>;
       loanAccountLoader: DataLoader<string, Account | null>;
-    }
+    };
+    req: IncomingMessage;
+    res: ServerResponse;
 }
 
-(async () => {
-    const resolvers = await getResolvers();
-    const server = new ApolloServer<ContextValue>({
-        typeDefs,
-        resolvers,
-        plugins: [loggingPlugin],
-    });
-    const { url } = await startStandaloneServer(server, {
-        context: async ({ req, res }: { req: import('http').IncomingMessage, res: import('http').ServerResponse }) => {
-            // Authenticate frontend request using Bearer JWT
-            // let token: string | null = null;
-            // try {
-            //     token = authenticateRequest(req);
-            // } catch (err) {
-            //     throw new Error('Unauthorized: ' + (err as Error).message);
-            // }
-            // Generate internal API key for REST API
-            const apiKey = generateApiToken();
-            const restAPI = new RestAPI();
-            await restAPI.initialize({
-                context: {
-                    // token,
-                    apiKey,
-                },
-            });
-            return {
-                token:null,
+const app = express();
+const httpServer = http.createServer(app);
+
+const resolvers = await getResolvers();
+
+const server = new ApolloServer<ContextValue>({
+    typeDefs,
+    resolvers,
+    plugins: [
+      loggingPlugin, 
+      ApolloServerPluginDrainHttpServer({httpServer})
+      , ApolloServerPluginLandingPageLocalDefault()
+    ],
+});
+
+await server.start();
+
+app.use(cookieParser())
+
+app.use(
+  '/',
+  cors<cors.CorsRequest>({
+    origin: process.env.ALLOWED_ORIGINS?.split(','), // Allow multiple origins from .env
+    // origin:'*',
+    credentials: true,
+  }),
+  express.json(),
+  expressMiddleware(server, {
+        context: async ({ req, res }) => {
+        // Authenticate frontend request using Bearer JWT
+        let token: string | undefined = undefined;
+        try {
+          token = extractTokenFromCookie(req);
+        } catch  {
+          token = undefined
+        }
+        // Generate internal API key for REST API
+        const apiKey = generateApiToken();
+        const restAPI = new RestAPI();
+        await restAPI.initialize({
+            context: {
+                token,
                 apiKey,
-                restAPI,
-                loaders:{
-                  userAccountLoader: userAccountLoader(restAPI),
-                  accountOwnerLoader: accountOwnerLoader(restAPI), 
-                  accountLoansLoader: accountLoansLoader(restAPI),
-                  accountTransactionsLoader: accountTransactionsLoader(restAPI),
-                  loanSummaryLoader: loanSummaryLoader(restAPI),
-                  loanAccountLoader: loanAccountLoader(restAPI),
-                },
-                req,
-                res
-            };
-        },
-       
-    }); // Type assertion to bypass type error if necessary
-    console.log(`🚀 Server ready at ${url}`);
-})();
+            },
+        });
+        return {
+            token: token || null,
+            apiKey,
+            restAPI,
+            loaders:{
+              userAccountLoader: userAccountLoader(restAPI),
+              accountOwnerLoader: accountOwnerLoader(restAPI), 
+              accountLoansLoader: accountLoansLoader(restAPI),
+              accountTransactionsLoader: accountTransactionsLoader(restAPI),
+              loanSummaryLoader: loanSummaryLoader(restAPI),
+              loanAccountLoader: loanAccountLoader(restAPI),
+            },
+            req,
+            res
+        };
+    },
+
+  })
+)
+const PORT = 4000;
+await new Promise<void>((resolve) => {
+  httpServer.listen(PORT, () => resolve())
+  console.log(httpServer.address())
+})
+console.log(`🚀 Server ready at http://localhost:${PORT}`);
