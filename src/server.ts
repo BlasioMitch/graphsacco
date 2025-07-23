@@ -100,9 +100,11 @@ app.use(
 
   })
 )
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 await new Promise<void>((resolve) => {
-  httpServer.listen(PORT, () => resolve())
-  console.log(httpServer.address())
+  httpServer.listen(PORT, () => {
+    console.log(httpServer.address()) ;
+    resolve();
+  })
 })
 console.log(`🚀 Server ready at http://localhost:${PORT}`);
