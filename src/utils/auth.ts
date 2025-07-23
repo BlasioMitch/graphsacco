@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { IncomingMessage } from 'http';
+import { Request } from 'express';
+import { GraphQLError } from 'graphql';
 
 const JWT_SECRET  = process.env.INTERNAL_API_SECRET;
 
@@ -40,3 +42,22 @@ export const authenticateRequest = (req: IncomingMessage) => {
     }
     return token;
 };
+
+export const extractTokenFromCookie = (req: Request): string | undefined => {
+    console.log(req.cookies,' cookies')
+    if( !req.cookies || !req.cookies.token){
+        return undefined;
+    }
+    return req.cookies.token;
+}; 
+
+export const requireAuth = (token: string | undefined) => {
+    if(!token){
+        throw new GraphQLError('Unauthorized: No token provided',{
+            extensions: {
+                code: 'UNAUTHORIZED',
+            }
+        });
+    }
+    return true;
+}

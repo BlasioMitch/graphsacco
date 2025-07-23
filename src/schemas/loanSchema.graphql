@@ -45,5 +45,5 @@ type Mutation {
         startDate: String
         term: Int
     ): Loan
-    deleteLoan(id: String!): Loan
+    deleteLoan(id: String!): String
 }

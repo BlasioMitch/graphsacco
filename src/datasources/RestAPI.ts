@@ -135,5 +135,9 @@ export class RestAPI extends RESTDataSource {
     async debug(){
         return this.get('http://localhost:3001/debug/users');
     }
+
+    async login({ email, password }: { email: string, password: string }) {
+        return this.post('auth/login', { body: { email, password } });
+    }
    
 }

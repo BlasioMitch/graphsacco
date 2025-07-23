@@ -6,7 +6,7 @@ import { startStandaloneServer } from '@apollo/server/standalone';
 import { typeDefs } from './schemas/index.js';
 import { getResolvers } from './resolvers/index.js';
 import { RestAPI } from './datasources/RestAPI.js';
-import {  generateApiToken } from './utils/auth.js';
+import {  generateApiToken, authenticateRequest } from './utils/auth.js';
 import { userAccountLoader,accountOwnerLoader, accountTransactionsLoader, accountLoansLoader, loanSummaryLoader, loanAccountLoader } from './loaders/index.js';
 import { Account, User, Loan, Loansummary, Transaction } from './types/index.js';
 
@@ -52,9 +52,9 @@ interface ContextValue{
         plugins: [loggingPlugin],
     });
     const { url } = await startStandaloneServer(server, {
-        context: async ({ req }: { req: import('http').IncomingMessage }) => {
+        context: async ({ req, res }: { req: import('http').IncomingMessage, res: import('http').ServerResponse }) => {
             // Authenticate frontend request using Bearer JWT
-            let token: string | null = null;
+            // let token: string | null = null;
             // try {
             //     token = authenticateRequest(req);
             // } catch (err) {
@@ -80,9 +80,12 @@ interface ContextValue{
                   accountTransactionsLoader: accountTransactionsLoader(restAPI),
                   loanSummaryLoader: loanSummaryLoader(restAPI),
                   loanAccountLoader: loanAccountLoader(restAPI),
-                }
-            }
-        }
-    })
+                },
+                req,
+                res
+            };
+        },
+       
+    }); // Type assertion to bypass type error if necessary
     console.log(`🚀 Server ready at ${url}`);
 })();

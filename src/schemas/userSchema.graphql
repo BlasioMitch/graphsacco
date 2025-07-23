@@ -32,6 +32,7 @@ input UserUpdateInput {
     status: USERSTATUS
     contact: String
     dob: String
+    gender: GENDER
 }
 type User{
     id: ID
@@ -56,12 +57,19 @@ type Query{
         getHealthCheck: String
     }
 
+type AuthPayload {
+    token: String
+    user: User
+}
+
 type Mutation {
     createUser(user: UserInput): User
-    
     updateUser(
         id: ID!
         updateData: UserUpdateInput
         )               : User
     deleteUser(id: ID!): String
+    login(email: String!, password: String!): AuthPayload
+    logout: Boolean!
+
 }

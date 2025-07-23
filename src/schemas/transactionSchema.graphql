@@ -32,6 +32,7 @@ type Transaction {
     loanId: String
     createdAt: String
     updateAt: String
+    account: Account
 }
 
 type Query {
@@ -49,5 +50,5 @@ type Mutation {
         description: String
         loanId: String
     ): Transaction
-    deleteTransaction(id: String!): Transaction
+    deleteTransaction(id: String!): String
 }

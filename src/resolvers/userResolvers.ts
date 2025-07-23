@@ -1,4 +1,5 @@
 import { User } from "@/types";
+import { requireAuth } from "../utils/auth.js";
 
 export default {
     
@@ -17,30 +18,66 @@ export default {
     Query: {
         // TODO: Implement dataloaders for each accountfetch and pagination
         getUsers: async (_: any, __: any, context: any) => {
+            // Check if the user is authenticated
+            await requireAuth(context.token);
             const response = await context.restAPI.getAllUsers();
             return response
         },
         getUserById: async (_: any, { id }: { id: string }, context: any) => {
+            await requireAuth(context.token);
             const response = await context.restAPI.getUserById(id);
             // if(!response) return null
             return response;
         },
+        getHealthCheck: async (_: any, __: any, context: any) => {
+            const response = await context.restAPI.getHealthCheck();
+            return response.status;
+        }
 
     },
     Mutation: {
         createUser: async (_: any, { user }: { user: any }, context: any) => {
-            console.log('Creating user:', user);
+            await requireAuth(context.token);
+            // Forward user creation to REST API (REST API handles hashing)
             const response = await context.restAPI.createUser(user);
+            // Remove password from response if present
+            if (response && response.password) {
+                delete response.password;
+            }
             return response;
         },
         updateUser: async (_: any, { id, updateData }:  {id: String, updateData:Partial<User>}, context: any) => {
+            await requireAuth(context.token);
             const response = await context.restAPI.updateUser(id, updateData);
             console.log('Updated user:', response);
             return response;
         },
         deleteUser: async (_: any, { id }: { id: string }, context: any) => {
+            await requireAuth(context.token);
             const response = await context.restAPI.deleteUser(id);
             return response.message;
+        },
+        login: async (_: any, { email, password }: { email: string, password: string }, context: any) => {
+            
+            // Forward login to REST API
+            const result = await context.restAPI.login({ email, password });
+            context.res.cookie('token', result.token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production', // Set to true in production
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Prevent CSRF attacks
+                maxAge: 24 * 60 * 60 * 1000, // 1 day
+            })
+
+            return result;
+        },
+        logout: (_: any, __: any, context: any) => {
+            // Clear Cookie
+            context.res.clearCookie('token', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production', // Set to true in production
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Prevent CSRF attacks
+            });
+            return true; // Indicate successful logout
         }
     }
 }
