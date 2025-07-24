@@ -62,7 +62,7 @@ export default {
             // Forward login to REST API
             const result = await context.restAPI.login({ email, password });
             console.log('Login result:', result); // Debug log for production
-            context.res.cookie('token', result.token, {
+            await context.res.cookie('token', result.token, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production', // Set to true in production
                 sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Prevent CSRF attacks

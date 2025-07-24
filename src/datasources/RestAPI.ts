@@ -4,7 +4,11 @@ import { RESTDataSource, AugmentedRequest } from "@apollo/datasource-rest";
 
 export class RestAPI extends RESTDataSource {
     context!: { token?: string; apiKey?: string }; // Add context property
-    override baseURL = process.env.REST_API_URL 
+    override baseURL = process.env.REST_API_URL;
+    constructor() {
+        super();
+        console.log('RestAPI baseURL:', this.baseURL); // Debug log baseURL
+    }
 
     override willSendRequest(path: string, request: AugmentedRequest): void {
         const ctx = this.context as { token? : string, apiKey?: string };
@@ -137,7 +141,15 @@ export class RestAPI extends RESTDataSource {
     }
 
     async login({ email, password }: { email: string, password: string }) {
-        return this.post('auth/login', { body: { email, password } });
+        // try {
+            const result = await this.post('auth/login', { body: { email, password } });
+            console.log('REST API login response:', result); // Debug log response
+            return result;
+    //     } catch (error) {
+    //         console.error('REST API login error:', error);
+    //         throw error;
+    //     }
+    // }
     }
    
 }

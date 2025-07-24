@@ -3,15 +3,15 @@ import { IncomingMessage } from 'http';
 import { Request } from 'express';
 import { GraphQLError } from 'graphql';
 
-const JWT_SECRET  = process.env.INTERNAL_API_SECRET;
+const JWT_SECRET  = process.env.JWT_SECRET
 
-export const generateApiToken = () => {
-    const payload = {
-        service:'graphql',
-        exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24), // 1 hour expiration
-    }
-    return jwt.sign(payload, JWT_SECRET as string)
-}
+// export const generateApiToken = () => {
+//     const payload = {
+//         service:'graphql',
+//         exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24), // 1 hour expiration
+//     }
+//     return jwt.sign(payload, JWT_SECRET as string)
+// }
 
 export const verifyToken = (token: string) => {
     return jwt.verify(token, JWT_SECRET as string, (err, decoded) => {

@@ -14,7 +14,7 @@ import DataLoader from 'dataloader';
 import { typeDefs } from './schemas/index.js';
 import { getResolvers } from './resolvers/index.js';
 import { RestAPI } from './datasources/RestAPI.js';
-import {  generateApiToken, authenticateRequest, extractTokenFromCookie } from './utils/auth.js';
+import {  extractTokenFromCookie } from './utils/auth.js';
 import { userAccountLoader,accountOwnerLoader, accountTransactionsLoader, accountLoansLoader, loanSummaryLoader, loanAccountLoader } from './loaders/index.js';
 import { Account, User, Loan, Loansummary, Transaction } from './types/index.js';
 
@@ -73,7 +73,7 @@ app.use(
           token = undefined
         }
         // Generate internal API key for REST API
-        const apiKey = generateApiToken();
+        const apiKey = process.env.INTERNAL_API_KEY as string;
         const restAPI = new RestAPI();
         await restAPI.initialize({
             context: {
