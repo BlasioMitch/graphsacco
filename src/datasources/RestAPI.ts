@@ -141,15 +141,15 @@ export class RestAPI extends RESTDataSource {
     }
 
     async login({ email, password }: { email: string, password: string }) {
-        // try {
+        try {
             const result = await this.post('auth/login', { body: { email, password } });
             console.log('REST API login response:', result); // Debug log response
             return result;
-    //     } catch (error) {
-    //         console.error('REST API login error:', error);
-    //         throw error;
-    //     }
-    // }
+        } catch (error) {
+            console.error('REST API login error:', error);
+            throw error;
+        }
     }
+    // }
    
 }
