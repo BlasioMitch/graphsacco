@@ -60,16 +60,23 @@ export default {
         login: async (_: any, { email, password }: { email: string, password: string }, context: any) => {
             
             // Forward login to REST API
-            const result = await context.restAPI.login({ email, password });
-            console.log('Login result:', result); // Debug log for production
-            await context.res.cookie('token', result.token, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production', // Set to true in production
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Prevent CSRF attacks
-                maxAge: 24 * 60 * 60 * 1000, // 1 day
-            })
+            console.log('Login mutation started for ', { email })
+            try{
 
-            return result;
+                const result = await context.restAPI.login({ email, password });
+                console.log('Login resolver result:', result); // Debug log for production
+                await context.res.cookie('token', result.token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production', // Set to true in production
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Prevent CSRF attacks
+                    maxAge: 24 * 60 * 60 * 1000, // 1 day
+                })
+                
+                return result;
+            } catch (error) {
+                console.error('Login error:', error);
+                throw new Error('Login failed');
+            }
         },
         logout: (_: any, __: any, context: any) => {
             // Clear Cookie
