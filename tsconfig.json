@@ -20,7 +20,7 @@
   "ts-node": {
     "esm": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*","src/**/*.graphql"],
   "exclude": ["node_modules"],
   "types": ["jest","node"]
 } 

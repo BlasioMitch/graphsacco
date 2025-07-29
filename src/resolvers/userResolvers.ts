@@ -1,5 +1,6 @@
 import { User } from "@/types";
 import { requireAuth } from "../utils/auth.js";
+console.log('userResolvers loaded');
 
 export default {
     
@@ -59,23 +60,20 @@ export default {
         },
         login: async (_: any, { email, password }: { email: string, password: string }, context: any) => {
             
-            // Forward login to REST API
-            console.log('Login mutation started for ', { email })
-            try{
-
+            console.log('Login mutation called with:', { email });
+            try {
                 const result = await context.restAPI.login({ email, password });
-                console.log('Login resolver result:', result); // Debug log for production
+                console.log('Login resolver received from REST API:', result);
                 await context.res.cookie('token', result.token, {
                     httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production', // Set to true in production
-                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Prevent CSRF attacks
-                    maxAge: 24 * 60 * 60 * 1000, // 1 day
-                })
-                
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                    maxAge: 24 * 60 * 60 * 1000,
+                });
                 return result;
             } catch (error) {
-                console.error('Login error:', error);
-                throw new Error('Login failed');
+                console.error('Login resolver error:', error);
+                throw error;
             }
         },
         logout: (_: any, __: any, context: any) => {
