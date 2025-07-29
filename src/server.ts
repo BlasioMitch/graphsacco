@@ -17,6 +17,7 @@ import { RestAPI } from './datasources/RestAPI.js';
 import {  extractTokenFromCookie } from './utils/auth.js';
 import { userAccountLoader,accountOwnerLoader, accountTransactionsLoader, accountLoansLoader, loanSummaryLoader, loanAccountLoader } from './loaders/index.js';
 import { Account, User, Loan, Loansummary, Transaction } from './types/index.js';
+import { pingRestService } from './utils/pingRest.js';
 
 // const cookieParser  = require('cookie-parser')
 
@@ -102,8 +103,9 @@ app.use(
 )
 const PORT = process.env.PORT || 4000;
 await new Promise<void>((resolve) => {
-  httpServer.listen(PORT, () => {
+  httpServer.listen(PORT, async () => {
     console.log(httpServer.address()) ;
+    await pingRestService()
     resolve();
   })
 })
