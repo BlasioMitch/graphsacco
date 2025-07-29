@@ -14,12 +14,10 @@ import fg from "fast-glob";
 import { mergeTypeDefs } from "@graphql-tools/merge";
 import { readFileSync } from "fs";
 
+const root = process.env.NODE_ENV === 'production' ? 'dist' : 'src';
 // Dynamically load all .graphql files from src/schemas
-export const getTypeDefs = async () => {
-    const files = await fg([path.join(process.cwd(), "src/schemas/**/*.graphql")]);
+    const files = fg.sync([path.join(process.cwd(), `${root}/schemas/**/*.graphql`)]);
     const typeDefsArray = files.map(file => readFileSync(file, "utf8"));
-    return mergeTypeDefs(typeDefsArray);
-};
 
 // Usage example (if you need to export typeDefs directly):
-export const typeDefs = await getTypeDefs();
+export const typeDefs = mergeTypeDefs(typeDefsArray);
