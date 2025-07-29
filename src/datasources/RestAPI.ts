@@ -4,7 +4,7 @@ import { RESTDataSource, AugmentedRequest } from "@apollo/datasource-rest";
 
 export class RestAPI extends RESTDataSource {
     context!: { token?: string; apiKey?: string }; // Add context property
-    override baseURL = process.env.REST_API_URL;
+    override baseURL = `${process.env.REST_API_URL}/api/`;
     constructor() {
         super();
         console.log('RestAPI baseURL:', this.baseURL); // Debug log baseURL
