@@ -1,4 +1,4 @@
-import { Account, User } from "@/types";
+import { Account, LoginInput, User } from "@/types";
 import { RESTDataSource, AugmentedRequest } from "@apollo/datasource-rest";
 
 
@@ -140,7 +140,7 @@ export class RestAPI extends RESTDataSource {
         return this.get('http://localhost:3001/debug/users');
     }
 
-    async login({ email, password }: { email: string, password: string }) {
+    async login({ email, password }: LoginInput) {
         try {
             const result = await this.post('auth/login', { body: { email, password } });
             console.log('REST API login response:', result); // Debug log response

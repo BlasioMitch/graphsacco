@@ -64,3 +64,8 @@ export interface Account {
     loans: Loan[]
     transactions: Transaction[]
 }
+
+export interface LoginInput {
+    email: string;
+    password: string;
+}

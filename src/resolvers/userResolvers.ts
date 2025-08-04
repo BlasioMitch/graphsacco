@@ -1,6 +1,6 @@
 import { User } from "@/types";
 import { requireAuth } from "../utils/auth.js";
-console.log('userResolvers loaded');
+import { ApolloError } from "apollo-server-errors"
 
 export default {
     
@@ -64,6 +64,9 @@ export default {
             try {
                 const result = await context.restAPI.login({ email, password });
                 console.log('Login resolver received from REST API:', result);
+                if(!result || !result.token) {
+                    throw new ApolloError('Invalid login response from REST service', 'INVALID_REST_RESPONSE', {result})
+                }
                 await context.res.cookie('token', result.token, {
                     httpOnly: true,
                     secure: process.env.NODE_ENV === 'production',
@@ -73,7 +76,9 @@ export default {
                 return result;
             } catch (error) {
                 console.error('Login resolver error:', error);
-                throw error;
+                throw new ApolloError('Login failed', 'LOGIN_ERROR',{
+                    original: error instanceof Error ? error.message: error
+                });
             }
         },
         logout: (_: any, __: any, context: any) => {
