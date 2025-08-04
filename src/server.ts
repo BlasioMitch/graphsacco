@@ -56,13 +56,31 @@ await server.start();
 
 app.use(cookieParser())
 
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (origin: string | undefined, callback: any) => {
+    // allow non-browser tools like curl (no origin)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    console.warn(`Blocked CORS origin: ${origin}`);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+};
+
 app.use(
-  '/',
-  cors<cors.CorsRequest>({
-    origin: process.env.ALLOWED_ORIGINS?.split(','), // Allow multiple origins from .env
-    // origin:'*',
-    credentials: true,
-  }),
+  '/graphql',
+  cors<cors.CorsRequest>(corsOptions),
   express.json(),
   expressMiddleware(server, {
         context: async ({ req, res }) => {
