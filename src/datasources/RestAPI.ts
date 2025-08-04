@@ -13,9 +13,12 @@ export class RestAPI extends RESTDataSource {
     override willSendRequest(path: string, request: AugmentedRequest): void {
         const ctx = this.context as { token? : string, apiKey?: string };
         request.headers['graph-api-key'] = ctx.apiKey || process.env.INTERNAL_API_KEY || '';
-        if (ctx.token) {
-            request.headers['Authorization'] = `Bearer ${ctx.token}`;
-        }
+        // if (ctx.token) {
+        //     request.headers['Authorization'] = `Bearer ${ctx.token}`;
+        // }
+         console.log(`[RestAPI] sending request to ${path} with headers:`, {
+            'graph-api-key': request.headers['graph-api-key'],
+        });
     }
 
     async initialize({context}: {context: { token?: string; apiKey?: string }}): Promise<void> {
