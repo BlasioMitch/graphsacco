@@ -44,7 +44,7 @@ export const authenticateRequest = (req: IncomingMessage) => {
 };
 
 export const extractTokenFromCookie = (req: Request): string | undefined => {
-    console.log(req.cookies,' cookies')
+    // console.log(req.cookies,' cookies')
     if( !req.cookies || !req.cookies.token){
         return undefined;
     }

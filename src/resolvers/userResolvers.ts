@@ -1,6 +1,7 @@
 import { User } from "@/types";
 import { requireAuth } from "../utils/auth.js";
-import { ApolloError } from "apollo-server-errors"
+import { ApolloError } from "apollo-server-errors";
+import { handleLoginResponse } from "../utils/loginMiddleware.js";
 
 export default {
     
@@ -50,7 +51,7 @@ export default {
         updateUser: async (_: any, { id, updateData }:  {id: String, updateData:Partial<User>}, context: any) => {
             await requireAuth(context.token);
             const response = await context.restAPI.updateUser(id, updateData);
-            console.log('Updated user:', response);
+            // console.log('Updated user:', response);
             return response;
         },
         deleteUser: async (_: any, { id }: { id: string }, context: any) => {
@@ -59,26 +60,19 @@ export default {
             return response.message;
         },
         login: async (_: any, { email, password }: { email: string, password: string }, context: any) => {
-            
-            console.log('Login mutation called with:', { email });
+            // console.log('Login mutation called with:', { email });
             try {
                 const result = await context.restAPI.login({ email, password });
-                console.log('Login resolver received from REST API:', result);
-                if(!result || !result.token) {
-                    throw new ApolloError('Invalid login response from REST service', 'INVALID_REST_RESPONSE', {result})
-                }
-                await context.res.cookie('token', result.token, {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                    maxAge: 24 * 60 * 60 * 1000,
-                });
-                return result;
+                // console.log('Login resolver received from REST API:', result);
+                return handleLoginResponse(result, context);
             } catch (error) {
-                console.error('Login resolver error:', error);
-                throw new ApolloError('Login failed', 'LOGIN_ERROR',{
-                    original: error instanceof Error ? error.message: error
-                });
+                // Handle fetch errors (network issues, REST API down, etc.)
+                return handleLoginResponse({
+                    error: {
+                        isFetchError: true,
+                        message: error instanceof Error ? error.message : 'Failed to connect to authentication service'
+                    }
+                }, context);
             }
         },
         logout: (_: any, __: any, context: any) => {

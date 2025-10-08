@@ -51,7 +51,7 @@ type User{
     fullName: String
     account: Account
     }
-extend type Query{
+type Query{
         getUsers: [User]
         getUserById(id: ID!): User
         getHealthCheck: String
@@ -60,6 +60,8 @@ extend type Query{
 type AuthPayload {
     token: String
     user: User
+    success: Boolean!
+    message: String
 }
 
 type Mutation {

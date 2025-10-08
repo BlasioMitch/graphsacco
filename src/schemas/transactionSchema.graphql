@@ -35,7 +35,7 @@ type Transaction {
     account: Account
 }
 
-extend type Query {
+type Query {
     getTransactions(accountId: ID): [Transaction]
 }
 

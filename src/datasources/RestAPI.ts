@@ -16,9 +16,9 @@ export class RestAPI extends RESTDataSource {
         // if (ctx.token) {
         //     request.headers['Authorization'] = `Bearer ${ctx.token}`;
         // }
-         console.log(`[RestAPI] sending request to ${path} with headers:`, {
-            'graph-api-key': request.headers['graph-api-key'],
-        });
+        //  console.log(`[RestAPI] sending request to ${path} with headers:`, {
+        //     'graph-api-key': request.headers['graph-api-key'],
+        // });
     }
 
     async initialize({context}: {context: { token?: string; apiKey?: string }}): Promise<void> {
@@ -68,7 +68,7 @@ export class RestAPI extends RESTDataSource {
     }
     async createAccount(account: any) {
         const res = await this.post('accounts', { body: account });
-        console.log('Response from createAccount:', res);
+        // console.log('Response from createAccount:', res);
         return res;
         // return this.post('accounts', { body: account });
     }
@@ -146,10 +146,10 @@ export class RestAPI extends RESTDataSource {
     async login({ email, password }: LoginInput) {
         try {
             const result = await this.post('auth/login', { body: { email, password } });
-            console.log('REST API login response:', result); // Debug log response
+            // console.log('REST API login response:', result); // Debug log response
             return result;
         } catch (error) {
-            console.error('REST API login error:', error);
+            // console.error('REST API login error:', error);
             throw error;
         }
     }

@@ -79,7 +79,7 @@ const corsOptions = {
 };
 
 app.use(
-  '/graphql',
+  '/',
   cors<cors.CorsRequest>(corsOptions),
   express.json(),
   expressMiddleware(server, {
@@ -122,7 +122,7 @@ app.use(
 const PORT = process.env.PORT || 4000;
 await new Promise<void>((resolve) => {
   httpServer.listen(PORT, async () => {
-    console.log(httpServer.address()) ;
+    // console.log(httpServer.address()) ;
     await pingRestService()
     resolve();
   })

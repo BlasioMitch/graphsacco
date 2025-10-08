@@ -29,7 +29,7 @@ type Loan {
     account: Account
 }
 
-extend type Query {
+type Query {
     getLoans(accountId:ID): [Loan]
 }
 
