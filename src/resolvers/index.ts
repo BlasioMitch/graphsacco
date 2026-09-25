@@ -7,10 +7,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export const getResolvers = async () => {
-  // Find all .ts resolver files using fast-glob
+  // Find all resolver files using fast-glob (.ts in dev via ts-node, .js in compiled dist)
   const files = await fg([
-  path.join(__dirname, './**/*.ts'),
-  `!${path.join(__dirname, 'index.ts')}`
+  path.join(__dirname, './**/*.{ts,js}'),
+  `!${path.join(__dirname, 'index.{ts,js}')}`,
+  `!${path.join(__dirname, '**/*.d.ts')}`
 ]);
   // Dynamically import each file using file URLs
   const modules = await Promise.all(
