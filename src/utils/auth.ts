@@ -14,12 +14,15 @@ const JWT_SECRET  = process.env.JWT_SECRET
 // }
 
 export const verifyToken = (token: string) => {
-    return jwt.verify(token, JWT_SECRET as string, (err, decoded) => {
-        if (err) {
-            throw new Error('Invalid token');
-        }
-        return decoded;
-    });
+    if (!JWT_SECRET) {
+        throw new Error('JWT_SECRET is not configured');
+    }
+    try {
+        // Must be the same secret saccoback uses to sign tokens
+        return jwt.verify(token, JWT_SECRET);
+    } catch {
+        throw new Error('Invalid token');
+    }
 }
 
 export const getAuthTokenFromRequest = (req: IncomingMessage): string | null => {
@@ -54,6 +57,15 @@ export const extractTokenFromCookie = (req: Request): string | undefined => {
 export const requireAuth = (token: string | undefined) => {
     if(!token){
         throw new GraphQLError('Unauthorized: No token provided',{
+            extensions: {
+                code: 'UNAUTHORIZED',
+            }
+        });
+    }
+    try {
+        verifyToken(token);
+    } catch {
+        throw new GraphQLError('Unauthorized: Invalid or expired token',{
             extensions: {
                 code: 'UNAUTHORIZED',
             }

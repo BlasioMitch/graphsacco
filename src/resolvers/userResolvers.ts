@@ -65,8 +65,16 @@ export default {
                 const result = await context.restAPI.login({ email, password });
                 // console.log('Login resolver received from REST API:', result);
                 return handleLoginResponse(result, context);
-            } catch (error) {
-                // Handle fetch errors (network issues, REST API down, etc.)
+            } catch (error: any) {
+                // RESTDataSource throws on non-2xx replies with the HTTP status in extensions.response
+                const status = error?.extensions?.response?.status;
+                if (status === 400 || status === 401) {
+                    return handleLoginResponse({ error: { code: 'INVALID_CREDENTIALS' } }, context);
+                }
+                if (status) {
+                    return handleLoginResponse({ error: { code: 'SERVER_ERROR' } }, context);
+                }
+                // No HTTP response at all: network issues, REST API down, etc.
                 return handleLoginResponse({
                     error: {
                         isFetchError: true,
