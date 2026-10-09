@@ -49,12 +49,28 @@ type User{
     dob: String
     hasAccount: Boolean
     fullName: String
+    # Resized JPEG data URL; null means show initials
+    avatar: String
     account: Account
     }
+
+# Fields a member may change on their own profile (Settings page); avatar null removes it
+input ProfileInput {
+    first_name: String
+    last_name: String
+    other_name: String
+    email: String
+    contact: String
+    dob: String
+    gender: GENDER
+    avatar: String
+}
 type Query{
         getUsers: [User]
         getUserById(id: ID!): User
         getHealthCheck: String
+        # The signed-in user
+        me: User
     }
 
 type AuthPayload {
@@ -71,6 +87,8 @@ type Mutation {
         updateData: UserUpdateInput
         )               : User
     deleteUser(id: ID!): String
+    # Always updates the signed-in user (id taken from the session, not the request)
+    updateMyProfile(input: ProfileInput!): User
     login(email: String!, password: String!): AuthPayload
     logout: Boolean!
 

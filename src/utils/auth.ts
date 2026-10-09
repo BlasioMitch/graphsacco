@@ -63,7 +63,8 @@ export const requireAuth = (token: string | undefined) => {
         });
     }
     try {
-        verifyToken(token);
+        // The signed payload identifies the caller: { userId, email, role }
+        return verifyToken(token) as AuthPayload;
     } catch {
         throw new GraphQLError('Unauthorized: Invalid or expired token',{
             extensions: {
@@ -71,5 +72,22 @@ export const requireAuth = (token: string | undefined) => {
             }
         });
     }
-    return true;
+}
+
+export interface AuthPayload {
+    userId: string;
+    email?: string;
+    role: 'ADMIN' | 'MANAGER' | 'USER';
+}
+
+export const STAFF_ROLES = ['ADMIN', 'MANAGER'] as const;
+
+export const requireRole = (token: string | undefined, roles: readonly string[]) => {
+    const payload = requireAuth(token);
+    if (!roles.includes(payload.role)) {
+        throw new GraphQLError('Forbidden: your role cannot perform this action', {
+            extensions: { code: 'FORBIDDEN' }
+        });
+    }
+    return payload;
 }

@@ -1,0 +1,25 @@
+# CSV bulk import: each row is saved on its own; results are indexed by the row's position in the request
+
+type BulkResult {
+    row: Int!
+    ok: Boolean!
+    id: String
+    error: String
+}
+
+# Like TransactionInput, plus an optional historical date (not in the future)
+input BulkTransactionInput {
+    accountId: String!
+    type: TRANSACTIONTYPE!
+    amount: Money!
+    status: TRANSACTIONSTATUS!
+    description: String
+    loanId: String
+    createdAt: String
+}
+
+type Mutation {
+    bulkCreateUsers(users: [UserInput!]!): [BulkResult!]!
+    bulkCreateTransactions(transactions: [BulkTransactionInput!]!): [BulkResult!]!
+    bulkCreateLoans(loans: [LoanInput!]!): [BulkResult!]!
+}

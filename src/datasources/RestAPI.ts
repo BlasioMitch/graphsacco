@@ -41,6 +41,12 @@ export class RestAPI extends RESTDataSource {
         return this.post('users', { body: user });
     }
 
+    // POST /<resource>/bulk -> per-row results
+    async bulkCreate(resource: 'users' | 'transactions' | 'loans', rows: any[]) {
+        const response = await this.post(`${resource}/bulk`, { body: { rows } });
+        return response.results;
+    }
+
     async updateUser(id: string, user: Partial<User>) {
         return this.patch(`users/${id}`, { body: user });
     }

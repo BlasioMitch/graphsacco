@@ -81,7 +81,7 @@ const corsOptions = {
 app.use(
   '/',
   cors<cors.CorsRequest>(corsOptions),
-  express.json(),
+  express.json({ limit: '2mb' }), // bulk CSV imports and avatar images
   expressMiddleware(server, {
         context: async ({ req, res }) => {
         // Authenticate frontend request using Bearer JWT
