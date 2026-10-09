@@ -1,3 +1,6 @@
+# Whole Uganda shillings (no minor unit). 64-bit backed (Postgres BIGINT), exact up to 9,007,199,254,740,991.
+scalar Money
+
 type Query
 
 type Mutation

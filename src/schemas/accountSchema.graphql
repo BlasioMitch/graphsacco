@@ -5,7 +5,7 @@ enum ACCOUNTSTATUS{
 }
 input AccountInput {
     userId: String!
-    balance: Int
+    balance: Money
     status: ACCOUNTSTATUS
     paidMembership: Boolean
     }
@@ -14,7 +14,7 @@ type Account {
     id: String!
     userId: String!
     accountNumber: String!
-    balance: Int!
+    balance: Money!
     status: ACCOUNTSTATUS!
     paidMembership: Boolean!
     hasLoan: Boolean!
@@ -34,7 +34,7 @@ type Mutation {
     createAccount(account: AccountInput): Account
     updateAccount(
         id: String!
-        balance: Int
+        balance: Money
         status: ACCOUNTSTATUS
         paidMembership: Boolean
     ): Account

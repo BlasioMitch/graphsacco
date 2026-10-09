@@ -37,8 +37,10 @@ export default {
             const response = await context.restAPI.createLoan(loan);
             return response;
         },
-        updateLoan: async (_: any, { id, updateData }: { id: string, updateData: Partial<Loan> }, context: any) => {
+        // The schema passes the fields as flat arguments; forward only the ones that were sent
+        updateLoan: async (_: any, { id, ...fields }: { id: string } & Partial<Loan>, context: any) => {
             await requireAuth(context.token);
+            const updateData = Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
             const response = await context.restAPI.updateLoan(id, updateData);
             return response;
         },

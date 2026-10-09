@@ -14,7 +14,7 @@ enum TRANSACTIONSTATUS{
 
 input TransactionInput {
     type: TRANSACTIONTYPE!
-    amount: Float!
+    amount: Money!
     accountId: String!
     status: TRANSACTIONSTATUS!
     description: String
@@ -24,7 +24,7 @@ input TransactionInput {
 type Transaction {
     id: String!
     type: TRANSACTIONTYPE!
-    amount: Float!
+    amount: Money!
     accountId: String!
     acountName: String
     status: TRANSACTIONSTATUS!
@@ -44,7 +44,7 @@ type Mutation {
     updateTransaction(
         id: String!
         type: TRANSACTIONTYPE
-        amount: Float
+        amount: Money
         accountId: String
         status: TRANSACTIONSTATUS
         description: String

@@ -3,16 +3,17 @@ import { requireAuth } from "../utils/auth.js";
 
 export default {
     Transaction: {
+        // Batched per request through the account-by-id loader (was one REST call per row)
         account: async (transaction: Transaction, _: any, context: any) => {
-            const response = await context.restAPI.getAccountById(transaction.accountId)
-            return response
+            if (!transaction.accountId) return null
+            return context.loaders.loanAccountLoader.load(transaction.accountId)
         }
     },
     Query: {
         getTransactions: async (_: any, {accountId}:{accountId: string}, context: any) => {
             await requireAuth(context.token);
             if (accountId) {
-                const response = await context.restAPI.getTransactionByAccountId(accountId);
+                const response = await context.restAPI.getTransactionsByAccountId(accountId);
                 return response;
             }
             const response = await context.restAPI.getAllTransactions();
@@ -26,8 +27,10 @@ export default {
             const response = await context.restAPI.createTransaction(transaction);
             return response;
         },
-        updateTransaction: async (_: any, { id, updateData }: { id: string, updateData: Partial<Transaction> }, context: any) => {
+        // The schema passes the fields as flat arguments; forward only the ones that were sent
+        updateTransaction: async (_: any, { id, ...fields }: { id: string } & Partial<Transaction>, context: any) => {
             await requireAuth(context.token);
+            const updateData = Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
             const response = await context.restAPI.updateTransaction(id, updateData);
             return response;
         },

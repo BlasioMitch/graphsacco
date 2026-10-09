@@ -1,0 +1,52 @@
+# Loan payments timeline: LOAN_PAYMENT transactions collated per loan and month.
+# Only COMPLETED payments count toward the figures; PENDING ones are reported separately in the stats.
+
+type LoanPaymentRow {
+    loanId: String!
+    accountNumber: String!
+    memberName: String!
+    loanAmount: Money!
+    # Completed payments made before 1 January of the report year
+    broughtForward: Money!
+    # Always 12 entries, January..December of the report year
+    months: [Money!]!
+    # broughtForward + all months: repaid up to the end of the report year
+    totalPaid: Money!
+    # Current remaining balance (from the loan summary)
+    remainingBalance: Money!
+    status: LOANSTATUS!
+    # ISO timestamp of the payment that cleared the loan; null while the loan is open
+    completedOn: String
+}
+
+type LoanPaymentTotals {
+    loanAmount: Money!
+    broughtForward: Money!
+    months: [Money!]!
+    totalPaid: Money!
+    remainingBalance: Money!
+}
+
+# Figures for the selected period (the whole year, or one month when month is set)
+type LoanPaymentStats {
+    totalRepaid: Money!
+    paymentCount: Int!
+    pendingRepaid: Money!
+    pendingCount: Int!
+    # Sum of remaining balances of open (ACTIVE / DEFAULTED) loans, as of now
+    outstandingBalance: Money!
+    loansCompleted: Int!
+}
+
+type LoanPaymentsReport {
+    year: Int!
+    month: Int
+    availableYears: [Int!]!
+    stats: LoanPaymentStats!
+    loans: [LoanPaymentRow!]!
+    totals: LoanPaymentTotals!
+}
+
+type Query {
+    getLoanPaymentsReport(year: Int!, month: Int): LoanPaymentsReport
+}

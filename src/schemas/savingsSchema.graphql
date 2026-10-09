@@ -1,0 +1,45 @@
+# Savings timeline: SAVINGS_DEPOSIT transactions collated per member and month.
+# Only COMPLETED deposits count toward balances; PENDING ones are reported separately in the stats.
+
+type MemberSavings {
+    accountId: String!
+    accountNumber: String!
+    memberName: String!
+    # Savings made before 1 January of the report year
+    broughtForward: Money!
+    # Always 12 entries, January..December of the report year
+    months: [Money!]!
+    # broughtForward + all months
+    total: Money!
+}
+
+type SavingsTotals {
+    broughtForward: Money!
+    months: [Money!]!
+    total: Money!
+}
+
+# Figures for the selected period (the whole year, or one month when month is set)
+type SavingsStats {
+    totalSavings: Money!
+    transactionCount: Int!
+    pendingSavings: Money!
+    pendingCount: Int!
+    # Largest per-member total saved in the period
+    highestTotalSaved: Money!
+    meanAmount: Money!
+    medianAmount: Money!
+}
+
+type SavingsReport {
+    year: Int!
+    month: Int
+    availableYears: [Int!]!
+    stats: SavingsStats!
+    members: [MemberSavings!]!
+    totals: SavingsTotals!
+}
+
+type Query {
+    getSavingsReport(year: Int!, month: Int): SavingsReport
+}

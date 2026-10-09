@@ -6,7 +6,7 @@ enum LOANSTATUS {
 
 input LoanInput {
     accountId: String!
-    amount: Int!
+    amount: Money!
     interestRate: Float!
     status: LOANSTATUS!
     endDate: String!
@@ -17,7 +17,7 @@ input LoanInput {
 type Loan {
     id: String!
     accountId: String!
-    amount: Int!
+    amount: Money!
     interestRate: Float!
     status: LOANSTATUS!
     endDate: String!
@@ -38,7 +38,7 @@ type Mutation {
     updateLoan(
         id: String!
         accountId: String
-        amount: Int
+        amount: Money
         interestRate: Float
         status: LOANSTATUS
         endDate: String
