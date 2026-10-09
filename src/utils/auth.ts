@@ -82,6 +82,19 @@ export interface AuthPayload {
 
 export const STAFF_ROLES = ['ADMIN', 'MANAGER'] as const;
 
+export const isStaff = (payload: AuthPayload) => (STAFF_ROLES as readonly string[]).includes(payload.role);
+
+// Members may only reach their own records; staff may reach anyone's
+export const requireSelfOrStaff = (token: string | undefined, ownerUserId: string | null | undefined) => {
+    const payload = requireAuth(token);
+    if (!isStaff(payload) && String(ownerUserId) !== payload.userId) {
+        throw new GraphQLError('Forbidden: you can only view your own records', {
+            extensions: { code: 'FORBIDDEN' }
+        });
+    }
+    return payload;
+}
+
 export const requireRole = (token: string | undefined, roles: readonly string[]) => {
     const payload = requireAuth(token);
     if (!roles.includes(payload.role)) {

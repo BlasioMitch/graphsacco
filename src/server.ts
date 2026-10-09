@@ -14,7 +14,7 @@ import DataLoader from 'dataloader';
 import { typeDefs } from './schemas/index.js';
 import { getResolvers } from './resolvers/index.js';
 import { RestAPI } from './datasources/RestAPI.js';
-import {  extractTokenFromCookie } from './utils/auth.js';
+import { extractTokenFromCookie, getAuthTokenFromRequest } from './utils/auth.js';
 import { userAccountLoader,accountOwnerLoader, accountTransactionsLoader, accountLoansLoader, loanSummaryLoader, loanAccountLoader } from './loaders/index.js';
 import { Account, User, Loan, Loansummary, Transaction } from './types/index.js';
 import { pingRestService } from './utils/pingRest.js';
@@ -85,9 +85,10 @@ app.use(
   expressMiddleware(server, {
         context: async ({ req, res }) => {
         // Authenticate frontend request using Bearer JWT
+        // Session token: httpOnly cookie (web app) or Authorization: Bearer (mobile app)
         let token: string | undefined = undefined;
         try {
-          token = extractTokenFromCookie(req);
+          token = extractTokenFromCookie(req) || getAuthTokenFromRequest(req) || undefined;
         } catch  {
           token = undefined
         }

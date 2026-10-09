@@ -1,5 +1,5 @@
 import { User } from "@/types";
-import { requireAuth, requireRole, STAFF_ROLES } from "../utils/auth.js";
+import { requireAuth, requireRole, requireSelfOrStaff, STAFF_ROLES } from "../utils/auth.js";
 import { GraphQLError } from "graphql";
 import { ApolloError } from "apollo-server-errors";
 import { handleLoginResponse } from "../utils/loginMiddleware.js";
@@ -38,13 +38,12 @@ export default {
     Query: {
         // TODO: Implement dataloaders for each accountfetch and pagination
         getUsers: async (_: any, __: any, context: any) => {
-            // Check if the user is authenticated
-            await requireAuth(context.token);
+            requireRole(context.token, STAFF_ROLES);
             const response = await context.restAPI.getAllUsers();
             return response
         },
         getUserById: async (_: any, { id }: { id: string }, context: any) => {
-            await requireAuth(context.token);
+            requireSelfOrStaff(context.token, id);
             const response = await context.restAPI.getUserById(id);
             // if(!response) return null
             return response;
@@ -61,7 +60,7 @@ export default {
     },
     Mutation: {
         createUser: async (_: any, { user }: { user: any }, context: any) => {
-            await requireAuth(context.token);
+            requireRole(context.token, STAFF_ROLES);
             // Forward user creation to REST API (REST API handles hashing)
             const response = await context.restAPI.createUser(user);
             // Remove password from response if present
@@ -92,7 +91,7 @@ export default {
             return context.restAPI.updateUser(userId, changes);
         },
         deleteUser: async (_: any, { id }: { id: string }, context: any) => {
-            await requireAuth(context.token);
+            requireRole(context.token, STAFF_ROLES);
             const response = await context.restAPI.deleteUser(id);
             return response.message;
         },

@@ -5,6 +5,7 @@ type MemberSavings {
     accountId: String!
     accountNumber: String!
     memberName: String!
+    memberAvatar: String
     # Savings made before 1 January of the report year
     broughtForward: Money!
     # Always 12 entries, January..December of the report year

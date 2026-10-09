@@ -1,6 +1,6 @@
 import { Account } from "@/types";
 // import { requireAuth } from "@/utils/auth";
-import { requireAuth } from "../utils/auth.js";
+import { requireRole, requireSelfOrStaff, STAFF_ROLES } from '../utils/auth.js';
 import { GraphQLError } from "graphql";
 
 export default {
@@ -21,26 +21,26 @@ export default {
     Query: {
         getAccounts: async (_: any, __: any, context: any) => {
         //  Check if the user is authenticated
-            await requireAuth(context.token);
+            requireRole(context.token, STAFF_ROLES);
 
             const response = await context.restAPI.getAllAccounts();
             return response;
         },
         getAccountById: async (_: any, { id }: { id: string }, context: any) => {
-            await requireAuth(context.token);
             const response = await context.restAPI.getAccountById(id);
+            requireSelfOrStaff(context.token, response?.userId);
             return response;
         }
     },
     Mutation: {
         createAccount: async (_: any, { account }: { account: any }, context: any) => {
-            await requireAuth(context.token);
+            requireRole(context.token, STAFF_ROLES);
             console.log('Creating account:', account);
             const response = await context.restAPI.createAccount(account);
             return response;
         },
         updateAccount: async (_: any, { id, balance, paidMembership, status }: Partial<Account>, context: any) => {
-            await requireAuth(context.token);
+            requireRole(context.token, STAFF_ROLES);
             const updateData = {
                 ...(balance !== undefined && { balance }),
                 ...(paidMembership !== undefined && { paidMembership }),
@@ -50,7 +50,7 @@ export default {
             return response;
         },
         deleteAccount: async (_: any, { id }: { id: string }, context: any) => {
-            await requireAuth(context.token);
+            requireRole(context.token, STAFF_ROLES);
             const response = await context.restAPI.deleteAccount(id);
             return response.message || 'Account deleted successfully';
         }

@@ -1,11 +1,11 @@
-import { requireAuth } from '../utils/auth.js';
+import { requireRole, requireSelfOrStaff, STAFF_ROLES } from '../utils/auth.js';
 import { buildLoanPaymentsReport } from '../utils/loanPayments.js';
 import { validatePeriod } from '../utils/periods.js';
 
 export default {
     Query: {
         getLoanPaymentsReport: async (_: any, { year, month }: { year: number, month?: number | null }, context: any) => {
-            await requireAuth(context.token);
+            requireRole(context.token, STAFF_ROLES);
             validatePeriod(year, month);
 
             // Four REST calls in parallel (loans include their summary), joined in memory

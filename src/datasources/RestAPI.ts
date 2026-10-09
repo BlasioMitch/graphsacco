@@ -93,6 +93,30 @@ export class RestAPI extends RESTDataSource {
         return this.get('loans');
     }
 
+    async getLoansByStatus(status: string) {
+        return this.get(`loans?status=${encodeURIComponent(status)}`);
+    }
+
+    async applyForLoan(application: { userId: string, amount: number, term: number, purpose?: string }) {
+        return this.post('loans/applications', { body: application });
+    }
+
+    async approveLoan(id: string, decision: { interestRate?: number, startDate?: string, note?: string }) {
+        return this.post(`loans/${id}/approve`, { body: decision });
+    }
+
+    async payLoanFromSavings(id: string, amount: number) {
+        return this.post(`loans/${id}/pay-from-savings`, { body: { amount } });
+    }
+
+    async rejectLoan(id: string, reason: string) {
+        return this.post(`loans/${id}/reject`, { body: { reason } });
+    }
+
+    async getLoanSettings() {
+        return this.get('settings/loans');
+    }
+
     async getLoansByAccountId(id: string) {
         return this.get(`loans?accountId=${id}`);
     }

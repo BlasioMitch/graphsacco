@@ -22,6 +22,8 @@ export const median = (values: number[]) => {
     return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 };
 
+export const memberAvatar = (user?: User) => (user as { avatar?: string | null } | undefined)?.avatar ?? null;
+
 export const memberName = (user?: User) => user
     ? [user.first_name, user.last_name, user.other_name].filter(Boolean).join(' ')
     : 'Unknown member';

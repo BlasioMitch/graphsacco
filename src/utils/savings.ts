@@ -1,5 +1,5 @@
 import type { Account, Transaction, User } from '../types/index.js';
-import { localYearMonth, median, memberName, round, sum } from './periods.js';
+import { localYearMonth, median, memberAvatar, memberName, round, sum } from './periods.js';
 
 export const buildSavingsReport = (
     transactions: Transaction[],
@@ -13,6 +13,7 @@ export const buildSavingsReport = (
         accountId: account.id,
         accountNumber: account.accountNumber,
         memberName: memberName(usersById.get(account.userId)),
+        memberAvatar: memberAvatar(usersById.get(account.userId)),
         broughtForward: 0,
         months: new Array<number>(12).fill(0),
         total: 0,

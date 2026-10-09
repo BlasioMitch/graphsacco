@@ -1,7 +1,9 @@
 import type { Account, Loan, Transaction, User } from '../types/index.js';
-import { localYearMonth, memberName, round, sum } from './periods.js';
+import { localYearMonth, memberAvatar, memberName, round, sum } from './periods.js';
 
 const OPEN_STATUSES = new Set(['ACTIVE', 'DEFAULTED']);
+// Applications never became loans
+const APPLICATION_STATUSES = new Set(['PENDING', 'REJECTED']);
 
 type LoanWithSummary = Loan & { updatedAt?: string };
 
@@ -9,6 +11,7 @@ interface LoanPaymentRow {
     loanId: string;
     accountNumber: string;
     memberName: string;
+    memberAvatar: string | null;
     loanAmount: number;
     broughtForward: number;
     months: number[];
@@ -65,6 +68,7 @@ export const buildLoanPaymentsReport = (
 
     const rows: LoanPaymentRow[] = [];
     for (const loan of loans) {
+        if (APPLICATION_STATUSES.has(loan.status)) continue;
         const payments = (paymentsByLoan.get(loan.id) || []).sort(byDate);
         const completedPayments = payments.filter(payment => payment.status === 'COMPLETED');
         const completedOn = completionDate(loan, completedPayments);
@@ -104,6 +108,7 @@ export const buildLoanPaymentsReport = (
             loanId: loan.id,
             accountNumber: account?.accountNumber || '',
             memberName: memberName(account ? usersById.get(account.userId) : undefined),
+            memberAvatar: memberAvatar(account ? usersById.get(account.userId) : undefined),
             loanAmount: round(Number(loan.amount) || 0),
             broughtForward: round(broughtForward),
             months: months.map(round),

@@ -1,7 +1,21 @@
 enum LOANSTATUS {
+    # Member application awaiting a manager's decision
+    PENDING
     ACTIVE
     PAID
     DEFAULTED
+    REJECTED
+}
+
+# A member applies from the app; the rate starts at the SACCO default and is confirmed on approval
+input LoanApplicationInput {
+    amount: Money!
+    term: Int!
+    purpose: String
+}
+
+type LoanSettings {
+    defaultInterestRate: Float!
 }
 
 input LoanInput {
@@ -26,11 +40,26 @@ type Loan {
     summary:LoanSummary
     createAt: String
     updateAt: String
+    # When the loan (or application) was created
+    createdAt: String
+    purpose: String
+    # Manager's note; for rejected applications, the reason shown to the member
+    decisionNote: String
+    decidedAt: String
     account: Account
 }
 
 type Query {
     getLoans(accountId:ID): [Loan]
+    # Staff: applications by status (default PENDING)
+    getLoanApplications(status: LOANSTATUS): [Loan]
+    loanSettings: LoanSettings!
+}
+
+type SavingsLoanPayment {
+    withdrawal: Transaction!
+    payment: Transaction!
+    loan: Loan!
 }
 
 type Mutation {
@@ -46,4 +75,10 @@ type Mutation {
         term: Int
     ): Loan
     deleteLoan(id: String!): String
+    # Always for the signed-in member's own account
+    applyForLoan(input: LoanApplicationInput!): Loan
+    approveLoan(id: String!, interestRate: Float, startDate: String, note: String): Loan
+    rejectLoan(id: String!, reason: String!): Loan
+    "Repay from the member's savings: an ACCOUNT_WITHDRAW and a LOAN_PAYMENT, recorded together"
+    payLoanFromSavings(id: String!, amount: Money!): SavingsLoanPayment
 }

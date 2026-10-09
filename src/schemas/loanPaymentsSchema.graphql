@@ -5,6 +5,7 @@ type LoanPaymentRow {
     loanId: String!
     accountNumber: String!
     memberName: String!
+    memberAvatar: String
     loanAmount: Money!
     # Completed payments made before 1 January of the report year
     broughtForward: Money!
