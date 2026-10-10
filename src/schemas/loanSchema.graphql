@@ -8,10 +8,20 @@ enum LOANSTATUS {
 }
 
 # A member applies from the app; the rate starts at the SACCO default and is confirmed on approval
+# Applications page tabs; APPROVED and ALL include applications that became loans
+enum APPLICATIONVIEW {
+    PENDING
+    APPROVED
+    REJECTED
+    ALL
+}
+
 input LoanApplicationInput {
     amount: Money!
     term: Int!
     purpose: String
+    # Proposed start of the loan (YYYY-MM-DD), today up to 3 months ahead; repayments are due monthly after it
+    startDate: String
 }
 
 type LoanSettings {
@@ -52,7 +62,7 @@ type Loan {
 type Query {
     getLoans(accountId:ID): [Loan]
     # Staff: applications by status (default PENDING)
-    getLoanApplications(status: LOANSTATUS): [Loan]
+    getLoanApplications(status: LOANSTATUS, view: APPLICATIONVIEW): [Loan]
     loanSettings: LoanSettings!
 }
 

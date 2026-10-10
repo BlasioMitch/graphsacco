@@ -20,6 +20,8 @@ type Account {
     hasLoan: Boolean!
     is_deleted: Boolean
     deleted_at: String
+    # When the account was opened (shown on the member card)
+    createdAt: String
     owner: User
     loans: [Loan]
     transactions: [Transaction]

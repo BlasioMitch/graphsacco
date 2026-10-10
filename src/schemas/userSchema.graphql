@@ -51,8 +51,51 @@ type User{
     fullName: String
     # Resized JPEG data URL; null means show initials
     avatar: String
+    # Member settings (mobile app)
+    twoFactorEnabled: Boolean
+    notifyTransactions: Boolean
+    notifyUpdates: Boolean
+    notifyLoanDecisions: Boolean
     account: Account
     }
+
+# Settings a member changes from the app (Settings page)
+input MySettingsInput {
+    twoFactorEnabled: Boolean
+    notifyTransactions: Boolean
+    notifyUpdates: Boolean
+    notifyLoanDecisions: Boolean
+}
+
+enum NOTIFICATIONCATEGORY {
+    TRANSACTION
+    LOAN_DECISION
+    UPDATE
+}
+
+# The screen a notification opens
+enum NOTIFICATIONTARGET {
+    TRANSACTION
+    LOAN
+    PROFILE
+    SECURITY
+}
+
+type Notification {
+    id: ID!
+    category: NOTIFICATIONCATEGORY!
+    title: String!
+    body: String!
+    targetType: NOTIFICATIONTARGET
+    targetId: ID
+    readAt: String
+    createdAt: String!
+}
+
+type NotificationFeed {
+    items: [Notification!]!
+    unreadCount: Int!
+}
 
 # Fields a member may change on their own profile (Settings page); avatar null removes it
 input ProfileInput {
@@ -71,6 +114,8 @@ type Query{
         getHealthCheck: String
         # The signed-in user
         me: User
+        # The signed-in user's notifications, newest first (unreadOnly: just the ones not read yet)
+        myNotifications(limit: Int, unreadOnly: Boolean): NotificationFeed!
     }
 
 type AuthPayload {
@@ -89,6 +134,12 @@ type Mutation {
     deleteUser(id: ID!): String
     # Always updates the signed-in user (id taken from the session, not the request)
     updateMyProfile(input: ProfileInput!): User
+    updateMySettings(input: MySettingsInput!): User
+    # Both require the current password
+    changeMyPassword(currentPassword: String!, newPassword: String!): Boolean!
+    changeMyEmail(email: String!, password: String!): User
+    # Marks the given notifications read, or all when ids is omitted; returns how many changed
+    markNotificationsRead(ids: [ID!]): Int!
     login(email: String!, password: String!): AuthPayload
     logout: Boolean!
 

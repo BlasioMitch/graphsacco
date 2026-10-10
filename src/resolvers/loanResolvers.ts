@@ -29,8 +29,10 @@ export default {
             // console.log('Response from getAllLoans:', response);
             return response;
         },
-        getLoanApplications: async (_: any, { status }: { status?: string }, context: any) => {
+        // view selects a tab (approved applications included); status alone is kept for the sidebar count
+        getLoanApplications: async (_: any, { status, view }: { status?: string, view?: string }, context: any) => {
             requireRole(context.token, STAFF_ROLES);
+            if (view) return context.restAPI.getLoanApplications(view);
             return context.restAPI.getLoansByStatus(status || 'PENDING');
         },
         loanSettings: async (_: any, __: any, context: any) => {
@@ -41,9 +43,9 @@ export default {
     // TODO: Add mutations for creating, updating, and deleting loans
     Mutation: {
         // The applicant is always the signed-in user (never an id sent by the app)
-        applyForLoan: async (_: any, { input }: { input: { amount: number, term: number, purpose?: string } }, context: any) => {
+        applyForLoan: async (_: any, { input }: { input: { amount: number, term: number, purpose?: string, startDate?: string } }, context: any) => {
             const { userId } = requireAuth(context.token);
-            return context.restAPI.applyForLoan({ userId, amount: input.amount, term: input.term, purpose: input.purpose });
+            return context.restAPI.applyForLoan({ userId, amount: input.amount, term: input.term, purpose: input.purpose, startDate: input.startDate });
         },
         approveLoan: async (_: any, { id, ...decision }: { id: string, interestRate?: number, startDate?: string, note?: string }, context: any) => {
             requireRole(context.token, STAFF_ROLES);

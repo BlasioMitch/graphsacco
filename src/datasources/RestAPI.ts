@@ -1,5 +1,14 @@
 import { Account, LoginInput, User } from "@/types";
 import { RESTDataSource, AugmentedRequest } from "@apollo/datasource-rest";
+import { GraphQLError } from "graphql";
+
+const CODE_BY_STATUS = new Map([
+    [400, 'BAD_USER_INPUT'],
+    [401, 'UNAUTHENTICATED'],
+    [403, 'FORBIDDEN'],
+    [404, 'NOT_FOUND'],
+    [409, 'CONFLICT'],
+]);
 
 
 export class RestAPI extends RESTDataSource {
@@ -19,6 +28,20 @@ export class RestAPI extends RESTDataSource {
         //  console.log(`[RestAPI] sending request to ${path} with headers:`, {
         //     'graph-api-key': request.headers['graph-api-key'],
         // });
+    }
+
+    // The REST API explains rejections as { error: "..." }: pass that message on instead of "400: Bad Request"
+    // (extensions.response keeps the status for resolvers that branch on it, e.g. login)
+    override async errorFromResponse({ response, parsedBody }: Parameters<RESTDataSource['errorFromResponse']>[0]) {
+        const body = parsedBody as { error?: unknown } | undefined;
+        const message = typeof body?.error === 'string' && body.error ? body.error : `${response.status}: ${response.statusText}`;
+        const code = CODE_BY_STATUS.get(response.status) ?? (response.status >= 500 ? 'INTERNAL_SERVER_ERROR' : undefined);
+        return new GraphQLError(message, {
+            extensions: {
+                ...(code && { code }),
+                response: { url: response.url, status: response.status, statusText: response.statusText, body: parsedBody },
+            },
+        });
     }
 
     async initialize({context}: {context: { token?: string; apiKey?: string }}): Promise<void> {
@@ -49,6 +72,23 @@ export class RestAPI extends RESTDataSource {
 
     async updateUser(id: string, user: Partial<User>) {
         return this.patch(`users/${id}`, { body: user });
+    }
+
+    async changePassword(id: string, body: { currentPassword: string, newPassword: string }) {
+        return this.post(`users/${id}/password`, { body });
+    }
+
+    async changeEmail(id: string, body: { email: string, password: string }) {
+        return this.post(`users/${id}/email`, { body });
+    }
+
+    async getNotifications(userId: string, limit?: number, unreadOnly = false) {
+        const query = new URLSearchParams({ ...(limit && { limit: String(limit) }), ...(unreadOnly && { unread: 'true' }) }).toString();
+        return this.get(`users/${userId}/notifications${query ? `?${query}` : ''}`);
+    }
+
+    async markNotificationsRead(userId: string, ids: string[] | null) {
+        return this.post(`users/${userId}/notifications/read`, { body: ids ? { ids } : {} });
     }
 
     async deleteUser(id: string) {
@@ -93,11 +133,15 @@ export class RestAPI extends RESTDataSource {
         return this.get('loans');
     }
 
+    async getLoanApplications(view: string) {
+        return this.get(`loans/applications?view=${encodeURIComponent(view)}`);
+    }
+
     async getLoansByStatus(status: string) {
         return this.get(`loans?status=${encodeURIComponent(status)}`);
     }
 
-    async applyForLoan(application: { userId: string, amount: number, term: number, purpose?: string }) {
+    async applyForLoan(application: { userId: string, amount: number, term: number, purpose?: string, startDate?: string }) {
         return this.post('loans/applications', { body: application });
     }
 

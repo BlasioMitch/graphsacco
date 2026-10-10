@@ -1,12 +1,12 @@
 import { User } from "@/types";
 import { requireAuth, requireRole, requireSelfOrStaff, STAFF_ROLES } from "../utils/auth.js";
 import { GraphQLError } from "graphql";
-import { ApolloError } from "apollo-server-errors";
 import { handleLoginResponse } from "../utils/loginMiddleware.js";
 
 // Bio data only the member may change about themselves (staff may change role/status only)
 const PROFILE_FIELDS = ['first_name', 'last_name', 'other_name', 'email', 'contact', 'dob', 'gender', 'avatar'] as const;
 const STAFF_EDITABLE_FIELDS = ['role', 'status'];
+const SETTINGS_FIELDS = ['twoFactorEnabled', 'notifyTransactions', 'notifyUpdates', 'notifyLoanDecisions'] as const;
 const AVATAR_PATTERN = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/;
 const MAX_AVATAR_LENGTH = 200 * 1024;
 
@@ -52,6 +52,10 @@ export default {
             const { userId } = requireAuth(context.token);
             return context.restAPI.getUserById(userId);
         },
+        myNotifications: async (_: any, { limit, unreadOnly }: { limit?: number, unreadOnly?: boolean }, context: any) => {
+            const { userId } = requireAuth(context.token);
+            return context.restAPI.getNotifications(userId, limit, Boolean(unreadOnly));
+        },
         getHealthCheck: async (_: any, __: any, context: any) => {
             const response = await context.restAPI.getHealthCheck();
             return response.status;
@@ -89,6 +93,25 @@ export default {
             validateAvatar(input.avatar);
             const changes = definedOnly(Object.fromEntries(PROFILE_FIELDS.map(field => [field, input[field]])));
             return context.restAPI.updateUser(userId, changes);
+        },
+        updateMySettings: async (_: any, { input }: { input: Record<string, unknown> }, context: any) => {
+            const { userId } = requireAuth(context.token);
+            const changes = definedOnly(Object.fromEntries(SETTINGS_FIELDS.map(field => [field, input[field]])));
+            return context.restAPI.updateUser(userId, changes);
+        },
+        changeMyPassword: async (_: any, { currentPassword, newPassword }: { currentPassword: string, newPassword: string }, context: any) => {
+            const { userId } = requireAuth(context.token);
+            await context.restAPI.changePassword(userId, { currentPassword, newPassword });
+            return true;
+        },
+        changeMyEmail: async (_: any, { email, password }: { email: string, password: string }, context: any) => {
+            const { userId } = requireAuth(context.token);
+            return context.restAPI.changeEmail(userId, { email, password });
+        },
+        markNotificationsRead: async (_: any, { ids }: { ids?: string[] | null }, context: any) => {
+            const { userId } = requireAuth(context.token);
+            const result = await context.restAPI.markNotificationsRead(userId, ids ?? null);
+            return result.updated;
         },
         deleteUser: async (_: any, { id }: { id: string }, context: any) => {
             requireRole(context.token, STAFF_ROLES);
