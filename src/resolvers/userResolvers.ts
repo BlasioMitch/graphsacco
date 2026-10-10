@@ -1,7 +1,6 @@
 import { User } from "@/types";
 import { requireAuth, requireRole, requireSelfOrStaff, STAFF_ROLES } from "../utils/auth.js";
 import { GraphQLError } from "graphql";
-import { handleLoginResponse } from "../utils/loginMiddleware.js";
 
 // Bio data only the member may change about themselves (staff may change role/status only)
 const PROFILE_FIELDS = ['first_name', 'last_name', 'other_name', 'email', 'contact', 'dob', 'gender', 'avatar'] as const;
@@ -49,7 +48,7 @@ export default {
             return response;
         },
         me: async (_: any, __: any, context: any) => {
-            const { userId } = requireAuth(context.token);
+            const { userId } = requireAuth(context.token, { allowPasswordChange: true });
             return context.restAPI.getUserById(userId);
         },
         myNotifications: async (_: any, { limit, unreadOnly }: { limit?: number, unreadOnly?: boolean }, context: any) => {
@@ -117,39 +116,7 @@ export default {
             requireRole(context.token, STAFF_ROLES);
             const response = await context.restAPI.deleteUser(id);
             return response.message;
-        },
-        login: async (_: any, { email, password }: { email: string, password: string }, context: any) => {
-            // console.log('Login mutation called with:', { email });
-            try {
-                const result = await context.restAPI.login({ email, password });
-                // console.log('Login resolver received from REST API:', result);
-                return handleLoginResponse(result, context);
-            } catch (error: any) {
-                // RESTDataSource throws on non-2xx replies with the HTTP status in extensions.response
-                const status = error?.extensions?.response?.status;
-                if (status === 400 || status === 401) {
-                    return handleLoginResponse({ error: { code: 'INVALID_CREDENTIALS' } }, context);
-                }
-                if (status) {
-                    return handleLoginResponse({ error: { code: 'SERVER_ERROR' } }, context);
-                }
-                // No HTTP response at all: network issues, REST API down, etc.
-                return handleLoginResponse({
-                    error: {
-                        isFetchError: true,
-                        message: error instanceof Error ? error.message : 'Failed to connect to authentication service'
-                    }
-                }, context);
-            }
-        },
-        logout: (_: any, __: any, context: any) => {
-            // Clear Cookie
-            context.res.clearCookie('token', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production', // Set to true in production
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Prevent CSRF attacks
-            });
-            return true; // Indicate successful logout
         }
+
     }
 }

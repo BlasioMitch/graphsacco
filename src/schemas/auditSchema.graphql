@@ -1,0 +1,78 @@
+# Audit trail (ADMIN only): every change and sign-in event from the web app, the phone app and the system
+
+enum AUDITSOURCE {
+    WEB
+    MOBILE
+    SYSTEM
+}
+
+scalar JSON
+
+type AuditLog {
+    id: ID!
+    createdAt: String!
+    actorId: ID
+    actorEmail: String
+    actorRole: String
+    source: AUDITSOURCE!
+    action: String!
+    entityType: String
+    entityId: String
+    method: String
+    path: String
+    statusCode: Int
+    ip: String
+    userAgent: String
+    summary: String
+    # Request details with passwords, codes and images removed
+    changes: JSON
+    # The member the action was about, e.g. whose password reset was approved
+    subjectId: ID
+    subjectName: String
+    # Set when the change was made offline: when it was really made (createdAt is when it synced)
+    clientCreatedAt: String
+}
+
+type AuditLogPage {
+    items: [AuditLog!]!
+    total: Int!
+    limit: Int!
+    offset: Int!
+}
+
+type AuditActor {
+    actorId: ID
+    actorEmail: String
+}
+
+type AuditSubject {
+    subjectId: ID
+    subjectName: String
+}
+
+type AuditFacets {
+    actions: [String!]!
+    entityTypes: [String!]!
+    actors: [AuditActor!]!
+    subjects: [AuditSubject!]!
+}
+
+input AuditLogFilter {
+    # YYYY-MM-DD, Kampala time
+    from: String
+    to: String
+    actorId: ID
+    # Everything that happened to one member
+    subjectId: ID
+    action: String
+    entityType: String
+    entityId: String
+    source: AUDITSOURCE
+    # Searches the summary, email, path, record id and IP address
+    q: String
+}
+
+type Query {
+    auditLogs(filter: AuditLogFilter, limit: Int, offset: Int): AuditLogPage!
+    auditFacets: AuditFacets!
+}

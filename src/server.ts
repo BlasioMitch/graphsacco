@@ -10,11 +10,12 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
 import { loggingPlugin } from './utils/logging.js';
+import { idempotencyPlugin } from './utils/idempotencyPlugin.js';
 import DataLoader from 'dataloader';
 import { typeDefs } from './schemas/index.js';
 import { getResolvers } from './resolvers/index.js';
-import { RestAPI } from './datasources/RestAPI.js';
-import { extractTokenFromCookie, getAuthTokenFromRequest } from './utils/auth.js';
+import { RestAPI, restHeaders } from './datasources/RestAPI.js';
+import { extractTokenFromCookie, getAuthTokenFromRequest, readRequestOrigin, requireRole, STAFF_ROLES } from './utils/auth.js';
 import { userAccountLoader,accountOwnerLoader, accountTransactionsLoader, accountLoansLoader, loanSummaryLoader, loanAccountLoader } from './loaders/index.js';
 import { Account, User, Loan, Loansummary, Transaction } from './types/index.js';
 import { pingRestService } from './utils/pingRest.js';
@@ -46,7 +47,8 @@ const server = new ApolloServer<ContextValue>({
     typeDefs,
     resolvers,
     plugins: [
-      loggingPlugin, 
+      loggingPlugin,
+      idempotencyPlugin,
       ApolloServerPluginDrainHttpServer({httpServer})
       , ApolloServerPluginLandingPageLocalDefault()
     ],
@@ -73,10 +75,43 @@ const corsOptions = {
   },
   credentials: true,
   methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  // X-Idempotency-Key / X-Queued-At: changes made offline and sent later
+  allowedHeaders: ["Content-Type", "Authorization", "X-Client", "X-Idempotency-Key", "X-Queued-At"],
+  // Report downloads name their file
+  exposedHeaders: ["Content-Disposition"],
   preflightContinue: false,
   optionsSuccessStatus: 204,
 };
+
+// Printable (PDF) reports for staff, downloaded with the session cookie (web) or Bearer token
+const REPORT_TYPES = new Set(['cash-book', 'income-statement', 'trial-balance', 'balance-sheet', 'loan-portfolio']);
+app.get('/export/reports/:type.pdf', cors<cors.CorsRequest>(corsOptions), async (req, res) => {
+  const token = extractTokenFromCookie(req) || getAuthTokenFromRequest(req) || undefined;
+  try {
+    requireRole(token, STAFF_ROLES);
+  } catch (error: any) {
+    return res.status(error?.extensions?.code === 'FORBIDDEN' ? 403 : 401).json({ error: error.message });
+  }
+  if (!REPORT_TYPES.has(req.params.type)) return res.status(404).json({ error: 'Unknown report' });
+  const query = new URLSearchParams(
+    Object.entries(req.query).filter(([, value]) => typeof value === 'string' && value).map(([key, value]) => [key, String(value)])
+  ).toString();
+  try {
+    const upstream = await fetch(`${process.env.REST_API_URL}/api/reports/${req.params.type}.pdf${query ? `?${query}` : ''}`, {
+      headers: restHeaders({ apiKey: process.env.INTERNAL_API_KEY, ...readRequestOrigin(req, token) }),
+    });
+    if (!upstream.ok) {
+      const body = await upstream.json().catch(() => ({ error: 'Report failed' }));
+      return res.status(upstream.status).json(body);
+    }
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', upstream.headers.get('content-disposition') || `attachment; filename="${req.params.type}.pdf"`);
+    res.send(Buffer.from(await upstream.arrayBuffer()));
+  } catch (error) {
+    console.error('Report export failed:', error);
+    res.status(502).json({ error: 'The report service is unavailable' });
+  }
+});
 
 app.use(
   '/',
@@ -99,6 +134,7 @@ app.use(
             context: {
                 token,
                 apiKey,
+                ...readRequestOrigin(req, token),
             },
         });
         return {

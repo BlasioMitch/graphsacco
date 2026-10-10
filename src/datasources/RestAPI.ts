@@ -11,8 +11,39 @@ const CODE_BY_STATUS = new Map([
 ]);
 
 
+// Who made the GraphQL request: forwarded to the REST API for its audit trail
+export interface RequestOrigin {
+    actor?: { userId: string; email?: string; role: string } | null;
+    client?: 'web' | 'mobile' | null;
+    ip?: string | null;
+    userAgent?: string | null;
+    origin?: string | null;
+    queuedAt?: string | null;
+}
+
+type RestContext = { token?: string; apiKey?: string } & RequestOrigin;
+
+// Headers every call to the REST API carries: the internal key, and who is behind the request
+export const restHeaders = (ctx: RestContext): Record<string, string> => {
+    const headers: Record<string, string> = { 'graph-api-key': ctx.apiKey || process.env.INTERNAL_API_KEY || '' };
+    const origin: Record<string, string | null | undefined> = {
+        'x-actor-id': ctx.actor?.userId,
+        'x-actor-email': ctx.actor?.email,
+        'x-actor-role': ctx.actor?.role,
+        'x-client': ctx.client,
+        'x-client-ip': ctx.ip,
+        'x-client-ua': ctx.userAgent,
+        'x-client-origin': ctx.origin,
+        'x-queued-at': ctx.queuedAt,
+    };
+    for (const [name, value] of Object.entries(origin)) {
+        if (value) headers[name] = String(value);
+    }
+    return headers;
+};
+
 export class RestAPI extends RESTDataSource {
-    context!: { token?: string; apiKey?: string }; // Add context property
+    context!: RestContext;
     override baseURL = `${process.env.REST_API_URL}/api/`;
     constructor() {
         super();
@@ -20,8 +51,7 @@ export class RestAPI extends RESTDataSource {
     }
 
     override willSendRequest(path: string, request: AugmentedRequest): void {
-        const ctx = this.context as { token? : string, apiKey?: string };
-        request.headers['graph-api-key'] = ctx.apiKey || process.env.INTERNAL_API_KEY || '';
+        Object.assign(request.headers, restHeaders(this.context));
         // if (ctx.token) {
         //     request.headers['Authorization'] = `Bearer ${ctx.token}`;
         // }
@@ -44,9 +74,14 @@ export class RestAPI extends RESTDataSource {
         });
     }
 
-    async initialize({context}: {context: { token?: string; apiKey?: string }}): Promise<void> {
-        this.context = context; // Set the context property
-        }
+    async initialize({context}: {context: RestContext}): Promise<void> {
+        this.context = context;
+    }
+
+    // A session that changed during this request (sign-in) is audited as that member
+    setActor(actor: RequestOrigin['actor']) {
+        this.context.actor = actor;
+    }
 
     // Requests to /api/users
     async getAllUsers() {
@@ -218,15 +253,123 @@ export class RestAPI extends RESTDataSource {
     }
 
     async login({ email, password }: LoginInput) {
-        try {
-            const result = await this.post('auth/login', { body: { email, password } });
-            // console.log('REST API login response:', result); // Debug log response
-            return result;
-        } catch (error) {
-            // console.error('REST API login error:', error);
-            throw error;
-        }
+        return this.post('auth/login', { body: { email, password } });
     }
-    // }
-   
+
+    // Sign-in steps, password reset and fingerprint sign-in (/api/auth)
+    async verifyTwoFactor(challengeToken: string, code: string) {
+        return this.post('auth/2fa/verify', { body: { challengeToken, code } });
+    }
+
+    async forgotPassword(email: string) {
+        return this.post('auth/forgot-password', { body: { email } });
+    }
+
+    async replaceTemporaryPassword(userId: string, newPassword: string) {
+        return this.post(`users/${userId}/password/initial`, { body: { newPassword } });
+    }
+
+    async enrollBiometric(userId: string, deviceName?: string | null) {
+        return this.post('auth/biometric/enroll', { body: { userId, deviceName } });
+    }
+
+    async biometricLogin(deviceId: string, secret: string) {
+        return this.post('auth/biometric/login', { body: { deviceId, secret } });
+    }
+
+    async revokeBiometric(userId: string, deviceId?: string | null) {
+        return this.post('auth/biometric/revoke', { body: { userId, deviceId } });
+    }
+
+    async getTrustedDevices(userId: string) {
+        return this.get(`auth/biometric/devices?userId=${encodeURIComponent(userId)}`);
+    }
+
+    // Offline changes: claim a key before running, then store the answer (see utils/idempotencyPlugin.ts)
+    async claimIdempotency(key: string, operation: string | null) {
+        return this.post('idempotency/claim', { body: { key, operation } });
+    }
+
+    async completeIdempotency(key: string, response: unknown) {
+        return this.post('idempotency/complete', { body: { key, response } });
+    }
+
+    async releaseIdempotency(key: string) {
+        return this.post('idempotency/release', { body: { key } });
+    }
+
+    // Passkeys (web)
+    async passkeyRegistrationOptions(userId: string) {
+        return this.post('auth/passkey/register/options', { body: { userId } });
+    }
+
+    async addPasskey(userId: string, body: { challengeToken: string; response: unknown; deviceName?: string | null }) {
+        return this.post('auth/passkey/register/verify', { body: { ...body, userId } });
+    }
+
+    async passkeyLoginOptions(email?: string | null) {
+        return this.post('auth/passkey/login/options', { body: { email } });
+    }
+
+    async passkeyLogin(challengeToken: string, response: unknown) {
+        return this.post('auth/passkey/login/verify', { body: { challengeToken, response } });
+    }
+
+    async getPasskeys(userId: string) {
+        return this.get(`auth/passkey/list?userId=${encodeURIComponent(userId)}`);
+    }
+
+    async removePasskey(userId: string, id: string) {
+        return this.post('auth/passkey/remove', { body: { userId, id } });
+    }
+
+    async reportDeviceEvents(events: unknown[]) {
+        return this.post('audit/device-events', { body: { events } });
+    }
+
+    // Events only the gateway sees (sign-out)
+    async recordAudit(action: string, summary?: string) {
+        return this.post('audit', { body: { action, summary } });
+    }
+
+    // Password reset requests (staff)
+    async getPasswordResets(status?: string | null) {
+        return this.get(`password-resets${status ? `?status=${encodeURIComponent(status)}` : ''}`);
+    }
+
+    async getPasswordReset(id: string) {
+        return this.get(`password-resets/${encodeURIComponent(id)}`);
+    }
+
+    async completePasswordReset(id: string, password: string) {
+        return this.post(`password-resets/${encodeURIComponent(id)}/complete`, { body: { password } });
+    }
+
+    async dismissPasswordReset(id: string, note?: string | null) {
+        return this.post(`password-resets/${encodeURIComponent(id)}/dismiss`, { body: { note } });
+    }
+
+    // Audit trail (ADMIN)
+    async getAuditLogs(filter: Record<string, unknown>) {
+        const query = new URLSearchParams(
+            Object.entries(filter).filter(([, value]) => value !== undefined && value !== null && value !== '').map(([key, value]) => [key, String(value)])
+        ).toString();
+        return this.get(`audit-logs${query ? `?${query}` : ''}`);
+    }
+
+    async getAuditFacets() {
+        return this.get('audit-logs/facets');
+    }
+
+    // Bookkeeping reports and dashboard figures (staff)
+    async getReport(type: string, params: Record<string, unknown>) {
+        const query = new URLSearchParams(
+            Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== '').map(([key, value]) => [key, String(value)])
+        ).toString();
+        return this.get(`reports/${encodeURIComponent(type)}${query ? `?${query}` : ''}`);
+    }
+
+    async getDashboardStats(range: string) {
+        return this.get(`stats/dashboard?range=${encodeURIComponent(range)}`);
+    }
 }

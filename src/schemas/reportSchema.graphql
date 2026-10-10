@@ -1,0 +1,165 @@
+# Bookkeeping reports (ADMIN and MANAGER). Amounts are whole UGX; dates are YYYY-MM-DD in Kampala time.
+# Derived double-entry: COMPLETED transactions and disbursed loans posted to a small chart of accounts.
+
+type LedgerLine {
+    code: String!
+    name: String!
+    amount: Money!
+}
+
+type CashBookLine {
+    id: ID!
+    date: String!
+    kind: String!
+    description: String!
+    member: String
+    accountNumber: String
+    inflow: Money!
+    outflow: Money!
+    # Cash position after this line (always the full position, even when filtered)
+    balance: Money!
+}
+
+type CashBook {
+    from: String!
+    to: String!
+    opening: Money!
+    closing: Money!
+    totalIn: Money!
+    totalOut: Money!
+    lines: [CashBookLine!]!
+    truncated: Boolean!
+    filtered: Boolean!
+}
+
+type IncomeMonth {
+    month: String!
+    feeIncome: Money!
+    interestIncome: Money!
+    total: Money!
+}
+
+type IncomeTotals {
+    income: Money!
+    expenses: Money!
+    surplus: Money!
+}
+
+type IncomeStatement {
+    from: String!
+    to: String!
+    income: [LedgerLine!]!
+    expenses: [LedgerLine!]!
+    # Running costs are not recorded in the system yet
+    expensesRecorded: Boolean!
+    totals: IncomeTotals!
+    months: [IncomeMonth!]!
+}
+
+type TrialBalanceRow {
+    code: String!
+    name: String!
+    type: String!
+    debit: Money!
+    credit: Money!
+}
+
+type DebitCredit {
+    debit: Money!
+    credit: Money!
+}
+
+type TrialBalance {
+    asAt: String!
+    rows: [TrialBalanceRow!]!
+    totals: DebitCredit!
+    balanced: Boolean!
+}
+
+type BalanceSheetTotals {
+    assets: Money!
+    liabilities: Money!
+    equity: Money!
+}
+
+# Ledger member savings against the balances on the accounts (today only)
+type SavingsCheck {
+    ledger: Money!
+    accounts: Money!
+    difference: Money!
+}
+
+type BalanceSheet {
+    asAt: String!
+    assets: [LedgerLine!]!
+    liabilities: [LedgerLine!]!
+    equity: [LedgerLine!]!
+    totals: BalanceSheetTotals!
+    balanced: Boolean!
+    savingsCheck: SavingsCheck
+}
+
+type PortfolioLoan {
+    id: ID!
+    member: String
+    accountNumber: String
+    principal: Money!
+    interestRate: Float!
+    term: Int!
+    startDate: String!
+    endDate: String
+    # On the report date: ACTIVE, PAID or DEFAULTED
+    status: String!
+    owed: Money!
+    interest: Money!
+    monthlyPayment: Money!
+    paid: Money!
+    outstanding: Money!
+    instalmentsDue: Int!
+    expectedPaid: Money!
+    arrears: Money!
+    daysOverdue: Int!
+    bucket: String!
+}
+
+type PortfolioSummary {
+    loans: Int!
+    openLoans: Int!
+    disbursed: Money!
+    repaid: Money!
+    outstanding: Money!
+    arrears: Money!
+    loansInArrears: Int!
+    # Share (0-1) of the outstanding book on loans more than 30 days overdue
+    portfolioAtRisk30: Float!
+}
+
+type PortfolioStatus {
+    status: String!
+    count: Int!
+    principal: Money!
+}
+
+type AgingBucket {
+    key: String!
+    label: String!
+    count: Int!
+    outstanding: Money!
+    arrears: Money!
+}
+
+type LoanPortfolio {
+    asAt: String!
+    summary: PortfolioSummary!
+    byStatus: [PortfolioStatus!]!
+    aging: [AgingBucket!]!
+    loans: [PortfolioLoan!]!
+}
+
+type Query {
+    cashBook(from: String, to: String, kind: String, accountNumber: String): CashBook!
+    incomeStatement(from: String, to: String): IncomeStatement!
+    trialBalance(asAt: String): TrialBalance!
+    balanceSheet(asAt: String): BalanceSheet!
+    loanPortfolio(asAt: String): LoanPortfolio!
+}

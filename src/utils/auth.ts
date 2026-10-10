@@ -46,6 +46,29 @@ export const authenticateRequest = (req: IncomingMessage) => {
     return token;
 };
 
+// The verified caller (if any) and which app sent the request, for the REST API's audit trail.
+// Never throws: an invalid token simply means no actor.
+export const readRequestOrigin = (req: IncomingMessage, token?: string) => {
+    let actor: AuthPayload | null = null;
+    if (token) {
+        try {
+            const payload = verifyToken(token) as AuthPayload & { purpose?: string };
+            if (payload?.userId && !payload.purpose) actor = { userId: payload.userId, email: payload.email, role: payload.role };
+        } catch {
+            actor = null;
+        }
+    }
+    const clientHeader = String(req.headers['x-client'] || '').toLowerCase();
+    const client = clientHeader === 'web' || clientHeader === 'mobile' ? clientHeader : null;
+    const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+    const ip = forwarded || req.socket?.remoteAddress || null;
+    const userAgent = req.headers['user-agent'] ? String(req.headers['user-agent']) : null;
+    // Passkeys are bound to the web page's origin; offline changes say when they were really made
+    const origin = req.headers.origin ? String(req.headers.origin) : null;
+    const queuedAt = req.headers['x-queued-at'] ? String(req.headers['x-queued-at']) : null;
+    return { actor, client, ip, userAgent, origin, queuedAt } as const;
+};
+
 export const extractTokenFromCookie = (req: Request): string | undefined => {
     // console.log(req.cookies,' cookies')
     if( !req.cookies || !req.cookies.token){
@@ -54,7 +77,12 @@ export const extractTokenFromCookie = (req: Request): string | undefined => {
     return req.cookies.token;
 }; 
 
-export const requireAuth = (token: string | undefined) => {
+interface RequireAuthOptions {
+    // Sessions from a temporary password may only be used to choose a new password (and to sign out)
+    allowPasswordChange?: boolean;
+}
+
+export const requireAuth = (token: string | undefined, { allowPasswordChange = false }: RequireAuthOptions = {}) => {
     if(!token){
         throw new GraphQLError('Unauthorized: No token provided',{
             extensions: {
@@ -62,9 +90,10 @@ export const requireAuth = (token: string | undefined) => {
             }
         });
     }
+    let payload: AuthPayload & { purpose?: string };
     try {
         // The signed payload identifies the caller: { userId, email, role }
-        return verifyToken(token) as AuthPayload;
+        payload = verifyToken(token) as AuthPayload & { purpose?: string };
     } catch {
         throw new GraphQLError('Unauthorized: Invalid or expired token',{
             extensions: {
@@ -72,12 +101,21 @@ export const requireAuth = (token: string | undefined) => {
             }
         });
     }
+    // A 2-step challenge only proves the password; it is never a session
+    if (payload.purpose || !payload.userId) {
+        throw new GraphQLError('Unauthorized: Invalid or expired token', { extensions: { code: 'UNAUTHORIZED' } });
+    }
+    if (payload.mustChangePassword && !allowPasswordChange) {
+        throw new GraphQLError('Choose a new password to continue', { extensions: { code: 'PASSWORD_CHANGE_REQUIRED' } });
+    }
+    return payload as AuthPayload;
 }
 
 export interface AuthPayload {
     userId: string;
     email?: string;
     role: 'ADMIN' | 'MANAGER' | 'USER';
+    mustChangePassword?: boolean;
 }
 
 export const STAFF_ROLES = ['ADMIN', 'MANAGER'] as const;

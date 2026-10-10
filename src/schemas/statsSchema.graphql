@@ -1,0 +1,102 @@
+# Staff dashboard (ADMIN and MANAGER)
+
+enum STATSRANGE {
+    # Last 3 months, by week
+    THREE_MONTHS
+    # Last 6 months, by month
+    SIX_MONTHS
+    # Last 12 months, by month
+    ONE_YEAR
+    # Everything, by month (by quarter beyond 3 years)
+    ALL
+}
+
+type Kpi {
+    value: Float!
+    # Same length of time just before (null for ALL and for balances)
+    previous: Float
+    # Relative change, e.g. 0.25 = +25% (null when there is nothing to compare)
+    change: Float
+}
+
+type DashboardKpis {
+    totalSavings: Kpi!
+    outstandingLoans: Kpi!
+    cash: Kpi!
+    portfolioAtRisk: Kpi!
+    deposits: Kpi!
+    withdrawals: Kpi!
+    repayments: Kpi!
+    disbursed: Kpi!
+    income: Kpi!
+    newMembers: Kpi!
+    transactions: Kpi!
+}
+
+type DashboardPoint {
+    # First day of the week, month or quarter (YYYY-MM-DD)
+    period: String!
+    deposits: Money!
+    withdrawals: Money!
+    repayments: Money!
+    disbursed: Money!
+    feeIncome: Money!
+    interestIncome: Money!
+    transactions: Int!
+    netSavings: Float!
+    newMembers: Int!
+    # Balances at the end of the period
+    savingsBalance: Float!
+    loanBook: Float!
+    cash: Float!
+}
+
+type MemberCounts {
+    active: Int!
+    total: Int!
+}
+
+type LoanStatusCount {
+    status: String!
+    count: Int!
+    amount: Money!
+}
+
+type DashboardAging {
+    key: String!
+    label: String!
+    count: Int!
+    outstanding: Money!
+}
+
+type DashboardLoans {
+    byStatus: [LoanStatusCount!]!
+    aging: [DashboardAging!]!
+    arrears: Money!
+    loansInArrears: Int!
+}
+
+type TypeMix {
+    kind: String!
+    label: String!
+    amount: Money!
+    count: Int!
+}
+
+type DashboardStats {
+    range: STATSRANGE!
+    # week, month or quarter
+    grain: String!
+    from: String!
+    to: String!
+    generatedAt: String!
+    kpis: DashboardKpis!
+    members: MemberCounts!
+    loans: DashboardLoans!
+    typeMix: [TypeMix!]!
+    series: [DashboardPoint!]!
+}
+
+type Query {
+    dashboardStats(range: STATSRANGE!): DashboardStats!
+}

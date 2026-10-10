@@ -1,0 +1,137 @@
+# Sign-in, 2-step verification, forgot password and fingerprint sign-in
+
+type AuthPayload {
+    # Session token (the web app uses the httpOnly cookie instead); null while a 2-step code is still needed
+    token: String
+    user: User
+    success: Boolean!
+    message: String
+    # Password accepted, now send verifyTwoFactor(challengeToken, code)
+    twoFactorRequired: Boolean
+    challengeToken: String
+    # Signed in with a temporary password: only setNewPassword is allowed until it is replaced
+    mustChangePassword: Boolean
+}
+
+type RequestPasswordResetResult {
+    success: Boolean!
+    message: String!
+}
+
+enum PASSWORDRESETSTATUS {
+    PENDING
+    COMPLETED
+    DISMISSED
+}
+
+type PasswordResetMember {
+    id: ID!
+    fullName: String
+    email: String
+    role: USERROLE
+    status: USERSTATUS
+    avatar: String
+    twoFactorEnabled: Boolean
+    lastLogin: String
+}
+
+type PasswordResetHandler {
+    id: ID!
+    fullName: String
+}
+
+type PasswordResetRequest {
+    id: ID!
+    email: String!
+    status: PASSWORDRESETSTATUS!
+    # WEB or MOBILE: where the member pressed "Forgot password?"
+    source: String
+    # Presses of "Send" in the last hour
+    requestCount: Int
+    lastRequestedAt: String
+    createdAt: String
+    handledAt: String
+    note: String
+    user: PasswordResetMember
+    handledBy: PasswordResetHandler
+}
+
+type PasswordResetResult {
+    request: PasswordResetRequest!
+    # False when the email could not be sent: give the member the password another way
+    emailSent: Boolean!
+    expiresAt: String!
+}
+
+# Returned once when a phone is enrolled; the phone keeps the secret behind its fingerprint prompt
+type BiometricEnrollment {
+    deviceId: ID!
+    secret: String!
+}
+
+# What the browser needs to create or use a passkey; challengeToken comes back with the browser's answer
+type PasskeyOptions {
+    options: JSON!
+    challengeToken: String!
+}
+
+type Passkey {
+    id: ID!
+    deviceName: String
+    createdAt: String
+    lastUsedAt: String
+}
+
+type TrustedDevice {
+    id: ID!
+    deviceName: String
+    createdAt: String
+    lastUsedAt: String
+}
+
+type Query {
+    # ADMIN and MANAGER
+    passwordResets(status: PASSWORDRESETSTATUS): [PasswordResetRequest!]!
+    passwordReset(id: ID!): PasswordResetRequest
+    # Phones enrolled for fingerprint sign-in by the signed-in member
+    myTrustedDevices: [TrustedDevice!]!
+    # Passkeys the signed-in user added on the web
+    myPasskeys: [Passkey!]!
+}
+
+# A sign-in event the phone kept while it was offline, reported once it is back online
+input DeviceEventInput {
+    id: ID!
+    action: String!
+    email: String
+    userId: ID
+    method: String
+    at: String!
+    deviceName: String
+    reason: String
+}
+
+type Mutation {
+    login(email: String!, password: String!): AuthPayload
+    verifyTwoFactor(challengeToken: String!, code: String!): AuthPayload
+    logout: Boolean!
+    # Public. Always answers the same way, whether or not the email belongs to a member
+    requestPasswordReset(email: String!): RequestPasswordResetResult!
+    # Replaces a temporary password; returns a fresh session
+    setNewPassword(newPassword: String!): AuthPayload
+    # ADMIN and MANAGER: set a temporary password (emailed to the member) or dismiss the request
+    completePasswordReset(id: ID!, password: String!): PasswordResetResult!
+    dismissPasswordReset(id: ID!, note: String): PasswordResetRequest!
+    # Fingerprint sign-in (phone app)
+    enrollBiometric(deviceName: String): BiometricEnrollment!
+    biometricLogin(deviceId: ID!, secret: String!): AuthPayload
+    revokeBiometric(deviceId: ID): Int!
+    # Passkey sign-in (web): fingerprint reader, Windows Hello or a phone
+    passkeyRegistrationOptions: PasskeyOptions!
+    addPasskey(challengeToken: String!, response: JSON!, deviceName: String): Passkey!
+    passkeyLoginOptions(email: String): PasskeyOptions!
+    passkeyLogin(challengeToken: String!, response: JSON!): AuthPayload
+    removePasskey(id: ID!): Int!
+    # Offline sign-ins, wrong passwords typed offline and offline sign-outs; returns how many were recorded
+    reportDeviceEvents(events: [DeviceEventInput!]!): Int!
+}

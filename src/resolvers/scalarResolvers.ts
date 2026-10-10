@@ -10,7 +10,19 @@ const toMoney = (value: unknown): number => {
     return number;
 };
 
+// Free-form data (audit trail request details): passed through as it is
+const toJson = (value: unknown) => value;
+
 export default {
+    JSON: new GraphQLScalarType({
+        name: 'JSON',
+        description: 'Any JSON value',
+        serialize: toJson,
+        parseValue: toJson,
+        parseLiteral: () => {
+            throw new GraphQLError('JSON literals are not supported; pass a variable');
+        },
+    }),
     Money: new GraphQLScalarType({
         name: 'Money',
         description: 'Whole Uganda shillings, 64-bit backed (exact up to 9,007,199,254,740,991)',

@@ -56,6 +56,8 @@ type User{
     notifyTransactions: Boolean
     notifyUpdates: Boolean
     notifyLoanDecisions: Boolean
+    # Signed in with a temporary password from staff: must choose a new one first
+    mustChangePassword: Boolean
     account: Account
     }
 
@@ -71,6 +73,8 @@ enum NOTIFICATIONCATEGORY {
     TRANSACTION
     LOAN_DECISION
     UPDATE
+    # For ADMIN and MANAGER users, e.g. a password reset to handle
+    STAFF_REQUEST
 }
 
 # The screen a notification opens
@@ -79,6 +83,7 @@ enum NOTIFICATIONTARGET {
     LOAN
     PROFILE
     SECURITY
+    PASSWORD_RESET
 }
 
 type Notification {
@@ -118,13 +123,6 @@ type Query{
         myNotifications(limit: Int, unreadOnly: Boolean): NotificationFeed!
     }
 
-type AuthPayload {
-    token: String
-    user: User
-    success: Boolean!
-    message: String
-}
-
 type Mutation {
     createUser(user: UserInput): User
     updateUser(
@@ -140,7 +138,5 @@ type Mutation {
     changeMyEmail(email: String!, password: String!): User
     # Marks the given notifications read, or all when ids is omitted; returns how many changed
     markNotificationsRead(ids: [ID!]): Int!
-    login(email: String!, password: String!): AuthPayload
-    logout: Boolean!
 
 }
