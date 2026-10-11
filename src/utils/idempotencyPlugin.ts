@@ -1,10 +1,13 @@
-import { ApolloServerPlugin } from '@apollo/server';
-import { GraphQLError } from 'graphql';
+import { ApolloServerPlugin, GraphQLResponse, HeaderMap } from '@apollo/server';
 
 // Offline changes (web and phone) are sent with an x-idempotency-key and may arrive more than once.
 // Before running such a mutation the gateway claims the key with the REST API; a key that already ran
 // answers with the stored result instead of applying the change twice.
 // A change that fails (e.g. not enough balance) releases its key, so a corrected retry can run.
+
+// An answer given without running the operation. (Throwing here would reach the app as "Internal server error".)
+const answer = (singleResult: Record<string, unknown>): GraphQLResponse =>
+  ({ http: { status: 200, headers: new HeaderMap() }, body: { kind: 'single', singleResult } }) as GraphQLResponse;
 
 const header = (headers: { get(name: string): string | undefined } | undefined, name: string) => headers?.get(name) || undefined;
 
@@ -18,11 +21,9 @@ export const idempotencyPlugin: ApolloServerPlugin<any> = {
       async responseForOperation({ operation, contextValue }) {
         if (operation?.operation !== 'mutation') return null;
         const claim = await contextValue.restAPI.claimIdempotency(key, request.operationName ?? null);
-        if (claim.status === 'done' && claim.response) {
-          return { http: { status: 200, headers: new Map() as any }, body: { kind: 'single', singleResult: claim.response } } as any;
-        }
+        if (claim.status === 'done' && claim.response) return answer(claim.response);
         if (claim.status === 'in_progress') {
-          throw new GraphQLError('This change is already being sent. Try again in a moment.', { extensions: { code: 'IN_PROGRESS' } });
+          return answer({ errors: [{ message: 'This change is already being sent. Try again in a moment.', extensions: { code: 'IN_PROGRESS' } }] });
         }
         claimed = true;
         return null;
