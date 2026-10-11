@@ -7,7 +7,7 @@
     "start": "node dist/server.js",
     "copy-graphql": "cp -r src/schemas/*.graphql dist/schemas/",
     "dev": "nodemon",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
   },
   "keywords": [],
   "author": "",
@@ -36,8 +36,11 @@
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/node": "^24.0.3",
+    "jest": "^29.7.0",
     "nodemon": "^3.1.10",
+    "ts-jest": "^29.4.14",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3"
